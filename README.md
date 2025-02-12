@@ -1,0 +1,117 @@
+
+# ML Project February 2025: Knights Archers Zombies
+
+This repository contains the code to setup the final evaluation of the course "[Machine Learning: Project](https://onderwijsaanbod.kuleuven.be/syllabi/e/H0T25AE.htm)" (KU Leuven, Faculty of Engineering, Department of Computer Science, [DTAI Section](https://dtai.cs.kuleuven.be)).
+
+
+## Summary
+
+- Install all dependencies in `requirements.txt`
+- Extend the file `rllib_student_code_to_submit.py` with your own code.
+- See `rllib_student_code_for_training.py` for an example of a very simple agent.
+  This file contains example code for training (called from within this file)
+  and evaluation (called via `evaluate.py`).
+- You can test your trained agent via the `evaluation.py` file. To know about
+  the options, run `python3 evaluation.py -h`.
+
+
+## Use on departmental computers
+
+The departmental computers will be used to run a tournament and submit your implementation (see detailed instructions below). You can also use these computers to train your agents. A tutorial to connect remotely via SSH can be found [here](2023-2024/ssh.md) and additional info is available on [the departmental web pages](https://system.cs.kuleuven.be/cs/system/wegwijs/computerklas/index-E.shtml).
+
+You will see a personal directory in:
+
+```
+/cw/lvs/NoCsBack/vakken/H0T25A/ml-project
+```
+
+There is an upper limit of 50MB on the disk space that you can use. Remote (ssh) users are also limited to 2GB of RAM.
+
+PyGame, PettingZoo and other packages that you can use are pre-installed in a virtual environment, which can be activated using:
+
+```
+source /cw/lvs/NoCsBack/vakken/H0T25A/ml-project/venv/bin/activate
+```
+
+Since this virtual environment will be used to run the tournament, you should avoid language features that are not compatible with the installed Python version (3.10.12) or use packages that are not installed. All of PettingZoo's [butterfly](https://pettingzoo.farama.org/content/basic_usage/) dependencies are currently installed, as well as `torch==2.2.0` and `tensorflow==2.15.0`.
+
+## Local installation
+
+- It is recommended to use a newly-created virtual environment to avoid dependency conflicts.
+
+
+- Install Pettingzoo with the additional requirements for the Butterfly environments
+
+    ```
+    pip install 'pettingzoo[butterfly]'
+    ```
+- Install SuperSuit, which will help managing your environments:
+
+  ```
+    pip install supersuit
+    ```
+
+        
+
+- Your agents will be dependent on some RL library. Here we provide an example for installing StableBaseline3:
+    
+    ```
+    pip install stable-baselines3
+    ```
+
+- All dependencies are also listed in the `requirements.txt` file (`pip install -r requirements.txt`).
+
+
+## Tournament
+
+The tournament will be played with agents that are available on the departmental computers. This will allow you to try your agent in the identical environment that is used by the tournament script. For this to work, you have to adhere to the following setup:
+
+- Your agent extends the `rllib_student_code_to_submit.py` file.
+- The tournament code will scrape the entire directory provided for you on the departmental computers for the `rllib_student_code_to_submit.py` file. If multiple matching files are found, a random one will be used.
+- Your agent should be ready to play in a few seconds, thus use a pre-trained policy. An agent that is not responding after 10 seconds will forfeit the game.
+- There is no timeout on the actions. The required speed is defined by the zombies that
+move down. Check your code on the departmental computers to get an idea of how fast your
+code runs. Or implement a timeout yourself to guarantee fast enough actions.
+
+### Paths
+
+Make sure you **do not use relative paths** in your implementation to load your trained model, as this will fail when running your agent from a different directory. Best practice is to retrieve the absolute path to the module directory:
+
+```python
+package_directory = os.path.dirname(os.path.abspath(__file__))
+```
+
+Afterwards, you can load your resources based on this `package_directory`:
+
+```python
+model_file = os.path.join(package_directory, 'models', 'mymodel.pckl')
+```
+
+## Submission using the Departmental Computers
+
+To submit your agent, a copy of your code and agent needs to be available on the departmental computers in a directory assigned to you (only your own code, openspiel and other libraries are provided). Also the code to train your agent should be included.
+
+The departmental computers have openspiel and its dependencies installed such that you can verify that your agent works. During the semester the tournament script will be run to play games between the (preliminary) agents that are already available. A tentative ranking will be shared.
+
+
+## FAQ
+
+### Installation cannot find tensorflow
+
+Tensorflow is only compatible with Python 3.8--3.11.
+
+On macOS you can use an older version by running these commands before the install script:
+
+```
+brew install python@3.10  # if using homebrew
+virtualenv -p /usr/local/opt/python@3.10/bin/python3 venv
+. ./venv/bin/activate
+```
+
+### Tensorflow / PyTorch does not work on Apple Silicon
+
+When using macOS on M1/M2 Apple Silicon, you might need to use the custom packages provided by Apple:
+
+- https://developer.apple.com/metal/pytorch/
+- https://developer.apple.com/metal/tensorflow-plugin/
+
