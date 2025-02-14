@@ -1,4 +1,15 @@
+#!/usr/bin/env python3
+# encoding: utf-8
+"""
+This file contains an example of training your agents using Ray RLLib.
+Notice that this code will not learn properlu, as no preprocessing of the data nor adaptation of the default PPO algorithm is done here.
+
+"""
+
+
+
 from pathlib import Path
+from typing import Callable
 
 import gymnasium
 import pettingzoo
@@ -15,7 +26,7 @@ from ray.tune.registry import register_env
 import numpy as np
 import torch
 
-from utils import PredictFunction, create_environment
+from utils import create_environment
 
 
 
@@ -34,8 +45,8 @@ class CustomWrapper(BaseWrapper):
         return flat_obs
 
 
-class CustomPredictFunction(PredictFunction):
-    """ This is an example of an instantiation of the PredictFunction interface that loads a trained RLLib algorithm from
+class CustomPredictFunction(Callable):
+    """ This is an example of an instantiation of the CustomPredictFunction that loads a trained RLLib algorithm from
     a checkpoint and extract the policies from it"""
 
     def __init__(self, env):

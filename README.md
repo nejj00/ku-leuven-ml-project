@@ -7,7 +7,7 @@ This repository contains the code to setup the final evaluation of the course "[
 ## Summary
 
 - Install all dependencies in `requirements.txt`
-- Extend the file `rllib_student_code_to_submit.py` with your own code.
+- Extend the file `submission.py` with your own code. See the file TODO
 - See `rllib_student_code_for_training.py` for an example of a very simple agent.
   This file contains example code for training (called from within this file)
   and evaluation (called via `evaluate.py`).
@@ -53,10 +53,10 @@ Since this virtual environment will be used to run the tournament, you should av
 
         
 
-- Your agents will be dependent on some RL library. Here we provide an example for installing StableBaseline3:
+- Your agents will be dependent on some RL library. Here we provide an example for installing Ray RLlib:
     
     ```
-    pip install stable-baselines3
+    pip install 'ray[tune]'
     ```
 
 - All dependencies are also listed in the `requirements.txt` file (`pip install -r requirements.txt`).
@@ -66,8 +66,8 @@ Since this virtual environment will be used to run the tournament, you should av
 
 The tournament will be played with agents that are available on the departmental computers. This will allow you to try your agent in the identical environment that is used by the tournament script. For this to work, you have to adhere to the following setup:
 
-- Your agent extends the `rllib_student_code_to_submit.py` file.
-- The tournament code will scrape the entire directory provided for you on the departmental computers for the `rllib_student_code_to_submit.py` file. If multiple matching files are found, a random one will be used.
+- Your agent implements the interface in the `submission.py` file.
+- The tournament code will scrape the entire directory provided for you on the departmental computers for the `submission.py` file. If multiple matching files are found, a random one will be used.
 - Your agent should be ready to play in a few seconds, thus use a pre-trained policy. An agent that is not responding after 10 seconds will forfeit the game.
 - There is no timeout on the actions. The required speed is defined by the zombies that
 move down. Check your code on the departmental computers to get an idea of how fast your

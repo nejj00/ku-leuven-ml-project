@@ -12,31 +12,6 @@ from pettingzoo.butterfly import knights_archers_zombies_v10
 MAX_ZOMBIES = 4
 
 
-class CustomWrapper(BaseWrapper):
-    # This is an example of a custom wrapper that flattens the symbolic vector state of the environment
-    # Wrapper are useful to inject state pre-processing or feature that does not need to be learned by the agent
-
-    def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
-        return  spaces.flatten_space(super().observation_space(agent))
-
-    def observe(self, agent: AgentID) -> ObsType | None:
-        obs = super().observe(agent)
-        flat_obs = obs.flatten()
-        return flat_obs
-
-
-
-class PredictFunction(Callable, abc.ABC):
-    """A callable abstract class that takes an observation and an agent and returns an action.
-    You must implement your function. In the constructor of this class you can load your model and
-    implement any custom logic. Make sure that this is coherent with the training logic."""
-
-    @abc.abstractmethod
-    def __call__(self, observation, agent, *args, **kwargs):
-        pass
-
-
-
 def create_environment(num_agents=1, max_cycles = 1000, render_mode = None, visual_observation = False):
     """Create the PettingZoo environment """
     assert num_agents > 0 and num_agents < 3, "Number of agents must be either 1 (one archer) or 2 (two archers)"
