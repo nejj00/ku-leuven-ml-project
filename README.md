@@ -33,7 +33,7 @@ source /cw/lvs/NoCsBack/vakken/H0T25A/ml-project/venv/bin/activate
 
 Since this virtual environment will be used to run the tournament, you should avoid language features that are not compatible with the installed Python version (3.12) or use packages that are not installed. All of PettingZoo's [butterfly](https://pettingzoo.farama.org/content/basic_usage/) dependencies are currently installed, as well as `torch==2.6.0` and `tensorflow==2.18.0`.
 
-**Important Note**:The latest release of **pettingzoo** on PyPI does not yet support Python 3.12. To use PettingZoo with Python 3.12, you will need to install the development version directly from the GitHub repository using the following command: `python -m pip install git+https://github.com/Farama-Foundation/PettingZoo.git`.
+**Important Note**:The latest release of `pettingzoo` on PyPI does not yet support Python 3.12. To use PettingZoo with Python 3.12, you will need to install the development version directly from the GitHub repository using the following command: `python -m pip install git+https://github.com/Farama-Foundation/PettingZoo.git`.
 
 ## Local installation
 
@@ -55,7 +55,7 @@ Since this virtual environment will be used to run the tournament, you should av
 - Your agents will be dependent on some RL library. Here we provide an example for installing Ray RLlib:
 
     ```
-    pip install 'ray[tune]'
+    pip install 'ray[rllib]'
     ```
 
 - All dependencies are also listed in the `requirements.txt` file (`pip install -r requirements.txt`).
