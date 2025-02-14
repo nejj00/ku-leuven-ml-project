@@ -31,7 +31,9 @@ PyGame, PettingZoo and other packages that you can use are pre-installed in a vi
 source /cw/lvs/NoCsBack/vakken/H0T25A/ml-project/venv/bin/activate
 ```
 
-Since this virtual environment will be used to run the tournament, you should avoid language features that are not compatible with the installed Python version (3.10.12) or use packages that are not installed. All of PettingZoo's [butterfly](https://pettingzoo.farama.org/content/basic_usage/) dependencies are currently installed, as well as `torch==2.2.0` and `tensorflow==2.15.0`.
+Since this virtual environment will be used to run the tournament, you should avoid language features that are not compatible with the installed Python version (3.12) or use packages that are not installed. All of PettingZoo's [butterfly](https://pettingzoo.farama.org/content/basic_usage/) dependencies are currently installed, as well as `torch==2.6.0` and `tensorflow==2.18.0`.
+
+**Important Note**:The latest release of **pettingzoo** on PyPI does not yet support Python 3.12. To use PettingZoo with Python 3.12, you will need to install the development version directly from the GitHub repository using the following command: `python -m pip install git+https://github.com/Farama-Foundation/PettingZoo.git`.
 
 ## Local installation
 
@@ -43,16 +45,15 @@ Since this virtual environment will be used to run the tournament, you should av
     ```
     pip install 'pettingzoo[butterfly]'
     ```
+
 - Install SuperSuit, which will help managing your environments:
 
-  ```
+    ```
     pip install supersuit
     ```
 
-        
-
 - Your agents will be dependent on some RL library. Here we provide an example for installing Ray RLlib:
-    
+
     ```
     pip install 'ray[tune]'
     ```
@@ -67,9 +68,7 @@ The tournament will be played with agents that are available on the departmental
 - Your agents implement the interface in the `submission.py` file.
 - The tournament code will scrape the entire directory provided for you on the departmental computers for the `submission.py` file. If multiple matching files are found, a random one will be used.
 - Your agents should be ready to play in a few seconds, thus use pre-trained policies. An agent that is not responding after 10 seconds will forfeit the game.
-- There is no timeout on the actions. The required speed is defined by the zombies that
-move down. Check your code on the departmental computers to get an idea of how fast your
-code runs. Or implement a timeout yourself to guarantee fast enough actions.
+- There is no timeout on the actions. The required speed is defined by the zombies that move down. Check your code on the departmental computers to get an idea of how fast your code runs. Or implement a timeout yourself to guarantee fast enough actions.
 
 ### Paths
 
@@ -94,11 +93,11 @@ The departmental computers have the `requirements.txt` packages already installe
 
 ## FAQ
 
-### Installation cannot find tensorflow
+### Installation cannot find Tensorflow
 
-Tensorflow is only compatible with Python 3.8--3.11.
+Tensorflow is only compatible with Python 3.9--3.12.
 
-On macOS you can use an older version by running these commands before the install script:
+On macOS you can use an older Python version by running these commands before the install script:
 
 ```
 brew install python@3.10  # if using homebrew
