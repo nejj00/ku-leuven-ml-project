@@ -7,12 +7,10 @@ This repository contains the code to setup the final evaluation of the course "[
 ## Summary
 
 - Install all dependencies in `requirements.txt`
-- Extend the file `submission.py` with your own code. See the file TODO
-- See `rllib_student_code_for_training.py` for an example of a very simple agent.
-  This file contains example code for training (called from within this file)
-  and evaluation (called via `evaluate.py`).
-- You can test your trained agent via the `evaluation.py` file. To know about
-  the options, run `python3 evaluation.py -h`.
+- Train either one or two agents using an RL library. See `example_training_rllib.py` for an example of training simple agents using Ray RLLib.
+- During your project, you can test your trained agent via the `evaluation.py` file. To know about the options, run `python3 evaluation.py -h`.
+- For the final submission, you need to extend the file `submission.py` with your own code and submit it on the departmental computers for the tournament (see below). See the file `example_submission_rllib.py` for an example.
+
 
 
 ## Use on departmental computers
@@ -64,11 +62,11 @@ Since this virtual environment will be used to run the tournament, you should av
 
 ## Tournament
 
-The tournament will be played with agents that are available on the departmental computers. This will allow you to try your agent in the identical environment that is used by the tournament script. For this to work, you have to adhere to the following setup:
+The tournament will be played with agents that are available on the departmental computers. This will allow you to try your agents in the identical environment that is used by the tournament script. For this to work, you have to adhere to the following setup:
 
-- Your agent implements the interface in the `submission.py` file.
+- Your agents implement the interface in the `submission.py` file.
 - The tournament code will scrape the entire directory provided for you on the departmental computers for the `submission.py` file. If multiple matching files are found, a random one will be used.
-- Your agent should be ready to play in a few seconds, thus use a pre-trained policy. An agent that is not responding after 10 seconds will forfeit the game.
+- Your agents should be ready to play in a few seconds, thus use pre-trained policies. An agent that is not responding after 10 seconds will forfeit the game.
 - There is no timeout on the actions. The required speed is defined by the zombies that
 move down. Check your code on the departmental computers to get an idea of how fast your
 code runs. Or implement a timeout yourself to guarantee fast enough actions.
@@ -89,9 +87,9 @@ model_file = os.path.join(package_directory, 'models', 'mymodel.pckl')
 
 ## Submission using the Departmental Computers
 
-To submit your agent, a copy of your code and agent needs to be available on the departmental computers in a directory assigned to you (only your own code, openspiel and other libraries are provided). Also the code to train your agent should be included.
+To submit your agent, a copy of your code and agent needs to be available on the departmental computers in a directory assigned to you. Also the code to train your agent should be included.
 
-The departmental computers have openspiel and its dependencies installed such that you can verify that your agent works. During the semester the tournament script will be run to play games between the (preliminary) agents that are already available. A tentative ranking will be shared.
+The departmental computers have the `requirements.txt` packages already installed such that you can verify that your agent works. During the semester the tournament script will be run to play games between the (preliminary) agents that are already available. A tentative ranking will be shared.
 
 
 ## FAQ
