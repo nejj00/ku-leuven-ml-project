@@ -82,7 +82,7 @@ def main(argv=None):
         CustomWrapper = Agent.CustomWrapper
         CustomPredictFunction = Agent.CustomPredictFunction
     else:
-        from example_submission_rllib import CustomWrapper, CustomPredictFunction
+        from submission_single_example_rllib import CustomWrapper, CustomPredictFunction
 
     # Create the PettingZoo environment for evaluation (with rendering)
     env = create_environment(num_agents=num_agents, render_mode=render_mode,

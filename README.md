@@ -8,8 +8,10 @@ This repository contains the code to setup the final evaluation of the course "[
 
 - Install all dependencies in `requirements.txt`
 - Train either one or two agents using an RL library. See `example_training_rllib.py` for an example of training simple agents using Ray RLLib.
+- The KAZ environment is created by using the corresponding function in the `utils.py` file. Notice that you can switch between the single and multi-agent environment by changing the `num_agents` parameter (either 1 or 2).
 - During your project, you can test your trained agent via the `evaluation.py` file. To know about the options, run `python3 evaluation.py -h`.
-- For the final submission, you need to extend the file `submission.py` with your own code and submit it on the departmental computers for the tournament (see below). See the file `example_submission_rllib.py` for an example.
+- For the final submission, you need to implement the interfaces in the two files `submission_single.py`, for the one archer (Task 3) and `submission_multi.py`, for the two archers environment. 
+- Submit your own code on the departmental computers for the tournament (see below). See the file `submission_single_example_rllib.py` for an example.
 
 
 
@@ -64,8 +66,8 @@ Since this virtual environment will be used to run the tournament, you should av
 
 The tournament will be played with agents that are available on the departmental computers. This will allow you to try your agents in the identical environment that is used by the tournament script. For this to work, you have to adhere to the following setup:
 
-- Your agents implement the interface in the `submission.py` file.
-- The tournament code will scrape the entire directory provided for you on the departmental computers for the `submission.py` file. If multiple matching files are found, a random one will be used.
+- Your agents implement the interface in the `submission_single.py`  and `submission_multi.py` files.
+- The tournament code will scrape the entire directory provided for you on the departmental computers for the `submission_single.py` and `submission_multi.py`  files. If multiple matching files are found, a random one will be used.
 - Your agents should be ready to play in a few seconds, thus use pre-trained policies. An agent that is not responding after 10 seconds will forfeit the game.
 - There is no timeout on the actions. The required speed is defined by the zombies that
 move down. Check your code on the departmental computers to get an idea of how fast your

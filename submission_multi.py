@@ -1,3 +1,9 @@
+"""Template of your submission file for Task 4 (multi agent KAZ).
+The template is identical to the one for Task 3, but it will be used in the tournament for Task 4.
+"""
+
+
+
 from typing import Callable
 
 import gymnasium
