@@ -2,7 +2,7 @@ pettingzoo[butterfly]
 torch
 numpy
 pygame
-ray[tune]
+ray[rllib]
 SuperSuit
 dm_tree
 lz4
