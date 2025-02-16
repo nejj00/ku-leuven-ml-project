@@ -2,9 +2,6 @@
 This file contains an example of implementation of the CustomWapper and CustomPredictFunction that you need to submit.
 
 Here, we are using Ray RLLib to load the trained agents.
-
-You can adapt this code to your needs and remove what you do not need, but make sure to keep the same interface for
-the predict function and the custom wrapper.
 """
 
 from pathlib import Path

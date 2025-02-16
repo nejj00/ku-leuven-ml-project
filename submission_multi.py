@@ -1,11 +1,6 @@
 """Template of your submission file for Task 4 (multi agent KAZ).
 The template is identical to the one for Task 3, but it will be used in the tournament for Task 4.
 """
-
-
-
-from typing import Callable
-
 import gymnasium
 from pettingzoo.utils import BaseWrapper
 from pettingzoo.utils.env import AgentID, ObsType
@@ -24,7 +19,7 @@ class CustomWrapper(BaseWrapper):
 
 
 
-class CustomPredictFunction(Callable):
+class CustomPredictFunction:
     """ Function to use to load the trained model and predict the action"""
 
     def __init__(self, env: gymnasium.Env):
