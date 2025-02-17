@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def evaluate(env, predict_function, seed_games):
 
     rewards = {agent: 0 for agent in env.possible_agents}
-
+    do_terminate = False
 
     for i in seed_games:
         env.reset(seed=i)
@@ -40,8 +40,19 @@ def evaluate(env, predict_function, seed_games):
             else:
                 action = predict_function(obs, agent)
             if env.render_mode == "human":
-                pygame.event.get()  # This is required to prevent the window from freezing
+                events = pygame.event.get()  # This is required to prevent the window from freezing
+                for event in events:
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_q:
+                            pygame.quit()
+                            do_terminate = True
+                if do_terminate:
+                    break
             env.step(action)
+            if do_terminate:
+                break
+        if do_terminate:
+            break
     env.close()
 
     avg_reward = sum(rewards.values()) / len(seed_games)
@@ -70,8 +81,11 @@ def main(argv=None):
 
     num_agents = 1
     visual_observation = False
-    logger.info(f'Show game: {visual_observation}')
     render_mode = "human" if args.screen else None # "human" or None
+    logger.info(f'Show game: {render_mode}')
+    if render_mode == "human":
+        logger.info(f'Press q to end game')
+    logger.info(f'Use pixels: {visual_observation}')
 
     # Loading student submitted code
     if args.load is not None:
