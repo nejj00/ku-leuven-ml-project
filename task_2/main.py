@@ -73,7 +73,3 @@ if __name__ == "__main__":
     )
     
     plot_probabilities(player1_probs, player2_probs)
-    
-    # stag_hunt()
-    # mathching_pennies()
-    print("end")
