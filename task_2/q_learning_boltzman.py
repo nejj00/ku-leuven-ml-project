@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 # # Prisoner's Dilemma payoff matrix (row player)
 # payoff_matrix = {
@@ -70,8 +71,8 @@ player1_coop_probs = []  # Store cooperation probabilities
 player2_coop_probs = []
 
 # Initial bias for COOPERATE action (positive values favor cooperation)
-player1_initial_bias = 0.5
-player2_initial_bias = 0.5
+player1_initial_bias = 2
+player2_initial_bias = 2
 
 # Initialize Q-tables with bias
 q_table_1 = np.zeros(2)
@@ -80,6 +81,10 @@ q_table_2 = np.zeros(2)
 # Apply bias directly to specific actions
 q_table_1[COOPERATE] = player1_initial_bias
 q_table_2[COOPERATE] = player2_initial_bias
+
+# q_table_1 = [random.random() - 0.5, random.random() - 0.5]
+# q_table_2 = [random.random() - 0.5, random.random() - 0.5]
+
 
 def softmax(q_values, tau=1.0):
     """
@@ -115,13 +120,16 @@ for episode in range(episodes):
     reward1, reward2 = PAYOFFS[(action1, action2)]
 
     # Q-learning update rule - now updates directly on 1D Q-tables
-    q_table_1[action1] += alpha * (reward1 + gamma * np.max(q_table_1) - q_table_1[action1])
-    q_table_2[action2] += alpha * (reward2 + gamma * np.max(q_table_2) - q_table_2[action2])
+    # q_table_1[action1] += alpha * (reward1 + gamma * np.max(q_table_1) - q_table_1[action1])
+    # q_table_2[action2] += alpha * (reward2 + gamma * np.max(q_table_2) - q_table_2[action2])
+    
+    q_table_1[action1] += alpha * (reward1 - q_table_1[action1])
+    q_table_2[action2] += alpha * (reward2 - q_table_2[action2])
 
     # Decay temperature
     tau = max(tau * tau_decay, tau_min)
     
-     # Store actions
+    # Store actions
     player1_actions.append(action1)
     player2_actions.append(action2)
 
