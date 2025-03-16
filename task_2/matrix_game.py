@@ -1,7 +1,16 @@
+from abc import abstractmethod
+
 class MatrixGame:
     name: str
     payoffs: dict
     actions: list
+    
+    @abstractmethod
+    def get_plotted_action(self):
+        """
+        Return the action corresponding to the Nash equilibrium(NE) 
+        """
+        pass
 
 class PrisonnersDilemma(MatrixGame):
     name = "Prisoner's Dilemma"
@@ -9,7 +18,7 @@ class PrisonnersDilemma(MatrixGame):
     DEFECT = 1
 
     # Payoff Matrix (R, S, T, P)
-    PAYOFFS = {
+    payoffs = {
         (COOPERATE, COOPERATE): (3, 3),
         (COOPERATE, DEFECT): (0, 5),
         (DEFECT, COOPERATE): (5, 0),
@@ -18,6 +27,9 @@ class PrisonnersDilemma(MatrixGame):
     
     actions = ["Cooperate", "Defect"]
     
+    def get_plotted_action(self):
+        return self.COOPERATE
+
 class StagHunt(MatrixGame):
     name = "StagHunt"
     STAG = 0
@@ -25,7 +37,7 @@ class StagHunt(MatrixGame):
     ACTIONS = [STAG, HARE]
 
     # Payoff Matrix (R, S, T, P)
-    PAYOFFS = {
+    payoffs = {
         (STAG, STAG): (2/3, 2/3),
         (STAG, HARE): (0, 2/3),
         (HARE, STAG): (2/3, 0),
@@ -33,14 +45,16 @@ class StagHunt(MatrixGame):
     }
     
     actions = ["Stag", "Hare"]
-    
+    def get_plotted_action(self):
+        return self.STAG
+
 class MatchingPennies(MatrixGame):
     name = "Matching Pennies"
     HEADS = 0
     TAILS = 1
 
     # Payoff Matrix (R, S, T, P)
-    PAYOFFS = {
+    payoffs = {
         (HEADS, HEADS): (0, 1),
         (HEADS, TAILS): (1, 0),
         (TAILS, HEADS): (1, 0),
@@ -48,3 +62,6 @@ class MatchingPennies(MatrixGame):
     }
     
     actions = ["Heads", "Tails"]
+    
+    def get_plotted_action(self):
+        return self.HEADS
