@@ -66,14 +66,18 @@ q_table_1 = np.zeros((2, 2))  # Player 1
 q_table_2 = np.zeros((2, 2))  # Player 2
 
 def softmax(q_values, tau=1.0):
-    """Compute softmax values for x with temperature tau."""
-    e_x = np.exp((q_values - np.max(q_values)) / tau)  # Subtract max for numerical stability
+    """
+    Compute softmax values for x with temperature tau.
+    
+    This was derived from paper 2 p. 5 Equation 4
+    """
+    e_x = np.exp((q_values) / tau)  # Subtract max for numerical stability
     return e_x / np.sum(e_x)
 
 def choose_action_boltzmann(q_values, last_opponent_action, tau):
     """Select an action using Boltzmann (softmax) distribution."""
     probabilities = softmax(q_values[last_opponent_action], tau)
-    return np.random.choice(len(q_values), p=probabilities)
+    return np.random.choice(ACTIONS, p=probabilities)
 
 last_action_1 = np.random.choice(ACTIONS)
 last_action_2 = np.random.choice(ACTIONS)
