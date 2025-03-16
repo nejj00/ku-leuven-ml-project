@@ -2,21 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-# # Prisoner's Dilemma payoff matrix (row player)
-# payoff_matrix = {
-#     ("C", "C"): (3, 3),
-#     ("C", "D"): (0, 5),
-#     ("D", "C"): (5, 0),
-#     ("D", "D"): (1, 1),
-# }
-
-# # Actions
-# actions = ["C", "D"]
-
-# # Initialize Q-tables for both players
-# Q1 = {a: {b: 0 for b in actions} for a in actions}
-# Q2 = {a: {b: 0 for b in actions} for a in actions}
-
 # Hyperparameters
 alpha = 0.001
 gamma = 1
@@ -71,8 +56,8 @@ player1_coop_probs = []  # Store cooperation probabilities
 player2_coop_probs = []
 
 # Initial bias for COOPERATE action (positive values favor cooperation)
-player1_initial_bias = 2
-player2_initial_bias = 2
+player1_initial_bias = 1
+player2_initial_bias = 1
 
 # Initialize Q-tables with bias
 q_table_1 = np.zeros(2)
