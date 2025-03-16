@@ -18,9 +18,9 @@ import numpy as np
 # Hyperparameters
 alpha = 0.01
 gamma = 0.95
-epsilon = 0.2
-epsilon_decay = 0.999
-min_epsilon = 0.01
+tau = 1.0         # Initial temperature for exploration
+tau_min = 0.1     # Minimum temperature
+tau_decay = 0.995 # Decay rate
 episodes = 10000
 
 # # Stag Hunt
@@ -36,7 +36,6 @@ episodes = 10000
 #     (HARE, HARE): (1, 1)
 # }
 
-
 # Prisoner's Dilemma
 COOPERATE = 0
 DEFECT = 1
@@ -50,23 +49,39 @@ PAYOFFS = {
     (DEFECT, DEFECT): (1, 1)
 }
 
+# # Matching Pennies
+# HEADS = 0
+# TAILS = 1
+# ACTIONS = [HEADS, TAILS]
 
+# # Payoff Matrix (R, S, T, P)
+# PAYOFFS = {
+#     (HEADS, HEADS): (0, 1),
+#     (HEADS, TAILS): (1, 0),
+#     (TAILS, HEADS): (1, 0),
+#     (TAILS, TAILS): (0, 1)
+# }
 
 q_table_1 = np.zeros((2, 2))  # Player 1
 q_table_2 = np.zeros((2, 2))  # Player 2
 
-def choose_action(q_table, last_opponent_action):
-    if np.random.uniform(0, 1) < epsilon:
-        return np.random.choice(ACTIONS)  # Explore
-    return np.argmax(q_table[last_opponent_action])  # Exploit
+def softmax(q_values, tau=1.0):
+    """Compute softmax values for x with temperature tau."""
+    e_x = np.exp((q_values - np.max(q_values)) / tau)  # Subtract max for numerical stability
+    return e_x / np.sum(e_x)
+
+def choose_action_boltzmann(q_values, last_opponent_action, tau):
+    """Select an action using Boltzmann (softmax) distribution."""
+    probabilities = softmax(q_values[last_opponent_action], tau)
+    return np.random.choice(len(q_values), p=probabilities)
 
 last_action_1 = np.random.choice(ACTIONS)
 last_action_2 = np.random.choice(ACTIONS)
 
 # Training loop
 for episode in range(episodes):
-    action1 = choose_action(q_table_1, last_action_2)
-    action2 = choose_action(q_table_2, last_action_1)
+    action1 = choose_action_boltzmann(q_table_1, last_action_2, tau)
+    action2 = choose_action_boltzmann(q_table_2, last_action_1, tau)
 
     # Get rewards
     reward1, reward2 = PAYOFFS[(action1, action2)]
@@ -79,7 +94,7 @@ for episode in range(episodes):
     last_action_2 = action2
 
     # Decay epsilon
-    epsilon = max(min_epsilon, epsilon * epsilon_decay)
+    tau = max(tau * tau_decay, tau_min)
 
 # Print final Q-tables
 print("Q-table for Player 1:")
@@ -89,3 +104,8 @@ for a in ACTIONS:
 print("\nQ-table for Player 2:")
 for a in ACTIONS:
     print(f"{a}: {q_table_2[a]}")
+
+# Test final learned strategy
+print("\nFinal Strategy (Greedy Policy):")
+print("Player 1 chooses:", "Cooperate" if np.argmax(q_table_1[last_action_2]) == COOPERATE else "Defect")
+print("Player 2 chooses:", "Cooperate" if np.argmax(q_table_2[last_action_1]) == COOPERATE else "Defect")
