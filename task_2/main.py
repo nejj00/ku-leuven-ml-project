@@ -1,4 +1,4 @@
-from q_learning import QLearning, BoltzmannQLearning
+from q_learning import QLearning, BoltzmannQLearning, EpsilonGreedyQLearning
 from matrix_game import MatrixGame, PrisonnersDilemma, StagHunt, MatchingPennies
 import numpy as np
 import random
@@ -62,6 +62,7 @@ def run_experiments(
 if __name__ == "__main__":
     
     boltzman_q = BoltzmannQLearning(1.0, 0.5, 0.9999)
+    epsilon_q = EpsilonGreedyQLearning(0.2, 0.01, 0.999)
     
     player1_probs, player2_probs = run_experiments(
         q_learning=boltzman_q, 

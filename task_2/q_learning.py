@@ -39,6 +39,15 @@ class EpsilonGreedyQLearning(QLearning):
             return np.random.choice(ACTIONS)  # Explore
         return np.argmax(q_table)  # Exploit
     
+    def get_action_probabilities(self, q_table):
+        num_actions = len(ACTIONS)
+        greedy_action = np.argmax(q_table)
+
+        probabilities = np.full(num_actions, self.epsilon / num_actions)  # Assign ε / N to all actions
+        probabilities[greedy_action] += 1 - self.epsilon  # Add (1 - ε) to the greedy action
+
+        return probabilities
+
     def decay_parameters(self):
         # Decay epsilon
         self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)
