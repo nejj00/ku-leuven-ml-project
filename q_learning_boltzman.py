@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 alpha = 0.001
 gamma = 1
 tau = 1.0         # Initial temperature for exploration
-tau_min = 0.1     # Minimum temperature
-tau_decay = 0.995 # Decay rate
+tau_min = 0.5     # Minimum temperature
+tau_decay = 0.9999 # Decay rate
 episodes = 10000
 
 # # Stag Hunt
@@ -70,8 +70,8 @@ player1_coop_probs = []  # Store cooperation probabilities
 player2_coop_probs = []
 
 # Initial bias for COOPERATE action (positive values favor cooperation)
-player1_initial_bias = 2
-player2_initial_bias = 0
+player1_initial_bias = 0.5
+player2_initial_bias = 0.5
 
 # Initialize Q-tables with bias
 q_table_1 = np.zeros(2)
