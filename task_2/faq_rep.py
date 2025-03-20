@@ -9,40 +9,47 @@ payoff_matrix = np.array([
 ])
 
 payoff_matrix = np.array([
-    [[1, 1], [0, 2/3]],  # Cooperate vs Cooperate, Cooperate vs Defect
-    [[2/3, 0], [2/3, 2/3]]   # Defect vs Cooperate, Defect vs Defect
+    [[1, 1], [0, 2/3]],
+    [[2/3, 0], [2/3, 2/3]]
 ])
 
 # payoff_matrix = np.array([
-#     [[0, 1], [1, 0]],  # Cooperate vs Cooperate, Cooperate vs Defect
-#     [[1, 0], [0, 1]]   # Defect vs Cooperate, Defect vs Defect
+#     [[0, 1], [1, 0]],
+#     [[1, 0], [0, 1]]
 # ])
+
+
+p1_payoffs = payoff_matrix[:, :, 0]
+p2_payoffs = payoff_matrix[:, :, 1]
+print(p1_payoffs)
+print(p2_payoffs)
+
 
 # Set learning parameters
 alpha = 1  # Learning rate
-tau = 1  # Exploration temperature
+tau = 0.3  # Exploration temperature
 
 def replicator_faq_rhs(t, x):
-    p1 = x[0]  # Probability of Player 1 cooperating
-    p2 = x[1]  # Probability of Player 2 cooperating
+    p1_C = x[0]  # Probability of Player 1 cooperating
+    p2_C = x[1]  # Probability of Player 2 cooperating
     
-    # Expected payoffs
-    u1_C = p2 * payoff_matrix[0, 0, 0] + (1 - p2) * payoff_matrix[0, 1, 0]
-    u1_D = p2 * payoff_matrix[1, 0, 0] + (1 - p2) * payoff_matrix[1, 1, 0]
-    u2_C = p1 * payoff_matrix[0, 0, 1] + (1 - p1) * payoff_matrix[1, 0, 1]
-    u2_D = p1 * payoff_matrix[0, 1, 1] + (1 - p1) * payoff_matrix[1, 1, 1]
+    # Expected payoffs - f_i(x) - (Ay)_i
+    f1_C = p2_C * p1_payoffs[0, 0] + (1 - p2_C) * p1_payoffs[0, 1] # Expected payoff of cooperating for Player 1
+    f1_D = p2_C * p1_payoffs[1, 0] + (1 - p2_C) * p1_payoffs[1, 1]
+    f2_C = p1_C * p2_payoffs[0, 0] + (1 - p1_C) * p2_payoffs[1, 0]
+    f2_D = p1_C * p2_payoffs[0, 1] + (1 - p1_C) * p2_payoffs[1, 1]
     
-    # Average payoffs
-    phi1 = p1 * u1_C + (1 - p1) * u1_D
-    phi2 = p2 * u2_C + (1 - p2) * u2_D
+    # Average payoffs - f(x) - (x^T Ay)_i
+    avg_f1 = p1_C * f1_C + (1 - p1_C) * f1_D
+    avg_f2 = p2_C * f2_C + (1 - p2_C) * f2_D
     
     # Replicator dynamics with FAQ modifications
     # dp1_dt = alpha * p1 * (1 - p1) * ((u1_C - phi1) / tau - np.log(p1 / (1 - p1)))
-    dp1_dt = (alpha * p1 / tau) * (u1_C - phi1) - alpha * p1 * (np.log(p1) - (p1 * np.log(p1) + (1 - p1) * np.log(1 - p1)))
+    dot_x_p1_C = (alpha * p1_C / tau) * (f1_C - avg_f1) - alpha * p1_C * (np.log(p1_C) - (p1_C * np.log(p1_C) + (1 - p1_C) * np.log(1 - p1_C)))
     # dp2_dt = alpha * p2 * (1 - p2) * ((u2_C - phi2) / tau - np.log(p2 / (1 - p2)))
-    dp2_dt = (alpha * p2 / tau) * (u2_C - phi2) - alpha * p2 * (np.log(p2) - (p2 * np.log(p2) + (1 - p2) * np.log(1 - p2)))
+    dot_x_p2_C = (alpha * p2_C / tau) * (f2_C - avg_f2) - alpha * p2_C * (np.log(p2_C) - (p2_C * np.log(p2_C) + (1 - p2_C) * np.log(1 - p2_C)))
     
-    return [dp1_dt, dp2_dt]
+    return [dot_x_p1_C, dot_x_p2_C]
 
 # Create a grid of initial conditions
 p1_vals = np.linspace(0.1, 0.9, 10)  # Avoid exactly 0 or 1 for log function
