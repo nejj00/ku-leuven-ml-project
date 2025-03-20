@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 # Define the payoff matrix for the Prisoner's Dilemma
-payoff_matrix = np.array([
-    [[3, 3], [0, 5]],  # Cooperate vs Cooperate, Cooperate vs Defect
-    [[5, 0], [1, 1]]   # Defect vs Cooperate, Defect vs Defect
-])
+# payoff_matrix = np.array([
+#     [[3, 3], [0, 5]],  # Cooperate vs Cooperate, Cooperate vs Defect
+#     [[5, 0], [1, 1]]   # Defect vs Cooperate, Defect vs Defect
+# ])
 
 payoff_matrix = np.array([
     [[1, 1], [0, 2/3]],
@@ -27,7 +27,7 @@ print(p2_payoffs)
 
 # Set learning parameters
 alpha = 1  # Learning rate
-tau = 0.3  # Exploration temperature
+tau = 0.001  # Exploration temperature
 
 def replicator_faq_rhs(t, x):
     p1_C = x[0]  # Probability of Player 1 cooperating
@@ -42,6 +42,10 @@ def replicator_faq_rhs(t, x):
     # Average payoffs - f(x) - (x^T Ay)_i
     avg_f1 = p1_C * f1_C + (1 - p1_C) * f1_D
     avg_f2 = p2_C * f2_C + (1 - p2_C) * f2_D
+    
+    # Standard replicator with FAQ learning
+    # dot_x_p1_C = p1_C * (1 - p1_C) * (f1_C - f1_D)
+    # dot_x_p2_C = p2_C * (1 - p2_C) * (f2_C - f2_D)
     
     # Replicator dynamics with FAQ modifications
     # dp1_dt = alpha * p1 * (1 - p1) * ((u1_C - phi1) / tau - np.log(p1 / (1 - p1)))
