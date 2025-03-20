@@ -13,9 +13,14 @@ payoff_matrix = np.array([
     [[2/3, 0], [2/3, 2/3]]   # Defect vs Cooperate, Defect vs Defect
 ])
 
+# payoff_matrix = np.array([
+#     [[0, 1], [1, 0]],  # Cooperate vs Cooperate, Cooperate vs Defect
+#     [[1, 0], [0, 1]]   # Defect vs Cooperate, Defect vs Defect
+# ])
+
 # Set learning parameters
-alpha = 0.1  # Learning rate
-tau = 0.3  # Exploration temperature
+alpha = 1  # Learning rate
+tau = 1  # Exploration temperature
 
 def replicator_faq_rhs(t, x):
     p1 = x[0]  # Probability of Player 1 cooperating
@@ -40,8 +45,8 @@ def replicator_faq_rhs(t, x):
     return [dp1_dt, dp2_dt]
 
 # Create a grid of initial conditions
-p1_vals = np.linspace(0.1, 0.9, 15)  # Avoid exactly 0 or 1 for log function
-p2_vals = np.linspace(0.1, 0.9, 15)
+p1_vals = np.linspace(0.1, 0.9, 10)  # Avoid exactly 0 or 1 for log function
+p2_vals = np.linspace(0.1, 0.9, 10)
 X, Y = np.meshgrid(p1_vals, p2_vals)
 U, V = np.zeros_like(X), np.zeros_like(Y)
 
