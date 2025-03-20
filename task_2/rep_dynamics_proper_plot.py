@@ -1,12 +1,29 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
+from matrix_game import PrisonnersDilemma 
 
 # Define the payoff matrix for the Prisoner's Dilemma
 payoff_matrix = np.array([
     [[3, 3], [0, 5]],  # Cooperate vs Cooperate, Cooperate vs Defect
     [[5, 0], [1, 1]]   # Defect vs Cooperate, Defect vs Defect
 ])
+
+payoff_matrix = np.array([
+    [[1, 1], [0, 2/3]],  # Cooperate vs Cooperate, Cooperate vs Defect
+    [[2/3, 0], [2/3, 2/3]]   # Defect vs Cooperate, Defect vs Defect
+])
+
+COOPERATE = 0
+DEFECT = 1
+
+# Payoff Matrix (R, S, T, P)
+PAYOFFS = {
+    (COOPERATE, COOPERATE): (3, 3),
+    (COOPERATE, DEFECT): (0, 5),
+    (DEFECT, COOPERATE): (5, 0),
+    (DEFECT, DEFECT): (1, 1)
+}
 
 # Define the replicator dynamics for both players
 def replicator_rhs(t, x):
@@ -30,8 +47,8 @@ def replicator_rhs(t, x):
     return [dp1_dt, dp2_dt]
 
 # Create a grid of initial conditions
-p1_vals = np.linspace(0, 1, 20)
-p2_vals = np.linspace(0, 1, 20)
+p1_vals = np.linspace(0.1, 0.9, 10)
+p2_vals = np.linspace(0.1, 0.9, 10)
 X, Y = np.meshgrid(p1_vals, p2_vals)
 U, V = np.zeros_like(X), np.zeros_like(Y)
 
