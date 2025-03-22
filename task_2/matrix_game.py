@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import numpy as np
 
 class MatrixGame:
     name: str
@@ -11,6 +12,14 @@ class MatrixGame:
         Return the action corresponding to the Nash equilibrium(NE) 
         """
         pass
+    
+    def get_payoff_matrix_player1(self):
+        return np.array([[self.payoffs[(i, j)][0] for j in (0, 1)] 
+                        for i in (0, 1)])
+    
+    def get_payoff_matrix_player2(self):
+        return np.array([[self.payoffs[(i, j)][1] for j in (0, 1)] 
+                        for i in (0, 1)])
 
 class PrisonnersDilemma(MatrixGame):
     name = "Prisoner's Dilemma"
@@ -38,10 +47,10 @@ class StagHunt(MatrixGame):
 
     # Payoff Matrix (R, S, T, P)
     payoffs = {
-        (STAG, STAG): (2/3, 2/3),
+        (STAG, STAG): (1, 1),
         (STAG, HARE): (0, 2/3),
         (HARE, STAG): (2/3, 0),
-        (HARE, HARE): (1, 1)
+        (HARE, HARE): (2/3, 2/3)
     }
     
     actions = ["Stag", "Hare"]

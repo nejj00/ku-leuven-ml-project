@@ -2,7 +2,9 @@ from q_learning import QLearning, BoltzmannQLearning, EpsilonGreedyQLearning
 from matrix_game import MatrixGame, PrisonnersDilemma, StagHunt, MatchingPennies
 import numpy as np
 import random
-from plotting import plot_probabilities
+from plotting import plot_probabilities, plot_rep_dynamics_prabability
+import matplotlib.pyplot as plt
+
 
 def run_experiments(
     q_learning: QLearning,
@@ -61,16 +63,18 @@ def run_experiments(
 
 if __name__ == "__main__":
     
-    boltzman_q = BoltzmannQLearning(1.0, 0.5, 0.9999)
-    epsilon_q = EpsilonGreedyQLearning(0.2, 0.01, 0.999)
+    boltzman_q = BoltzmannQLearning(temperature=1.0, temparature_min=0.5, temperature_decay=0.9999)
+    epsilon_q = EpsilonGreedyQLearning(epsilon=0.2, min_epsilon=0.01, epsilon_decay=0.999)
+    game = StagHunt()
     
     player1_probs, player2_probs = run_experiments(
         q_learning=boltzman_q, 
         episodes=10000,
-        runs=20,
-        matrix_game=PrisonnersDilemma(),
+        runs=10,
+        matrix_game=game,
         alpha=0.001,
         gamma=1
     )
     
-    plot_probabilities(player1_probs, player2_probs)
+    fig = plot_rep_dynamics_prabability(player1_probs, player2_probs, game)
+    plt.show()
