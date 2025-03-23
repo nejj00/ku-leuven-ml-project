@@ -63,7 +63,7 @@ def run_experiments(
 
 if __name__ == "__main__":
     
-    boltzman_q = BoltzmannQLearning(temperature=1.0, temparature_min=0.5, temperature_decay=0.9999)
+    boltzman_q = BoltzmannQLearning(temperature=1.0, temperature_min=0.5, temperature_decay=0.9999)
     epsilon_q = EpsilonGreedyQLearning(epsilon=0.2, min_epsilon=0.01, epsilon_decay=0.999)
     game = StagHunt()
     

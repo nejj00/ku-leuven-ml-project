@@ -57,10 +57,10 @@ class EpsilonGreedyQLearning(QLearning):
 
 
 class BoltzmannQLearning(QLearning):
-    def __init__(self, temperature, temparature_min, temperature_decay):
+    def __init__(self, temperature, temperature_min, temperature_decay):
         self.temperature = temperature
         self.starter_temperature = temperature
-        self.temparature_min = temparature_min
+        self.temperature_min = temperature_min
         self.temperature_decay = temperature_decay
 
     def softmax(self, q_values):
@@ -84,7 +84,7 @@ class BoltzmannQLearning(QLearning):
     
     def decay_parameters(self):
         # Decay temperature
-        self.temperature = max(self.temperature * self.temperature_decay, self.temparature_min)
+        self.temperature = max(self.temperature * self.temperature_decay, self.temperature_min)
         
     def reset_parameters(self):
-        self.temparature = self.starter_temperature
+        self.temperature = self.starter_temperature
