@@ -19,7 +19,7 @@ import numpy as np
 # alpha = 1  # Learning rate
 # tau = 0.001  # Exploration temperature
 
-def replicator_faq_rhs(x, game, alpha = 1, tau = 0.001):
+def replicator_faq_rhs(x, game, alpha = 1, tau = 0.005):
     p1_C = x[0]  # Probability of Player 1 cooperating
     p2_C = x[1]  # Probability of Player 2 cooperating
     
@@ -43,9 +43,7 @@ def replicator_faq_rhs(x, game, alpha = 1, tau = 0.001):
     return [dot_x_p1_C, dot_x_p2_C]
 
 
-def plot_probabilities(all_player1_probs, all_player2_probs):
-    
-    fig, ax = plt.subplots(figsize=(10, 8))
+def plot_probabilities(all_player1_probs, all_player2_probs, ax):
     
     for i in range(len(all_player1_probs)):
         # Plot each trajectory with transparency
@@ -73,11 +71,9 @@ def plot_probabilities(all_player1_probs, all_player2_probs):
     ax.set_title("Multiple Learning Trajectories & Mean Strategy Evolution")
     ax.grid(True)
     ax.legend()
-    
-    return fig
 
 
-def plot_replicator_dynamics(fig, game):
+def plot_replicator_dynamics(game, q_learning, ax):
     # Create a grid of initial conditions
     p1_vals = np.linspace(0.1, 0.9, 10)  # Avoid exactly 0 or 1 for log function
     p2_vals = np.linspace(0.1, 0.9, 10)
@@ -86,21 +82,14 @@ def plot_replicator_dynamics(fig, game):
 
     for i in range(X.shape[0]):
         for j in range(X.shape[1]):
-            dxdt = replicator_faq_rhs(game=game, x=[X[i, j], Y[i, j]], alpha=1, tau=0.001)
+            dxdt = replicator_faq_rhs(game=game, x=[X[i, j], Y[i, j]], alpha=q_learning.alpha, tau=q_learning.temperature)
             U[i, j], V[i, j] = dxdt
 
     # Plot the phase portrait
-    ax = fig.gca()
-    
     ax.quiver(X, Y, U, V, color='blue', alpha=0.3)
-    
-    return fig
 
 
-def plot_rep_dynamics_prabability(all_player1_probs, all_player2_probs, game):
+def plot_rep_dynamics_probability(all_player1_probs, all_player2_probs, game, q_learning, ax):
     
-    
-    fig = plot_probabilities(all_player1_probs, all_player2_probs)
-    fig = plot_replicator_dynamics(fig, game)
-    
-    return fig
+    plot_probabilities(all_player1_probs, all_player2_probs, ax)
+    plot_replicator_dynamics(game, q_learning, ax)
