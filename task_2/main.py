@@ -76,7 +76,7 @@ def multi_plot(temperature, ax):
     alpha = 0.003
     boltzman_q = BoltzmannQLearning(temperature=temperature, temperature_min=temperature, temperature_decay=0.9999, alpha=alpha)
     epsilon_q = EpsilonGreedyQLearning(epsilon=0.2, min_epsilon=0.01, epsilon_decay=0.999)
-    game = PrisonnersDilemma()
+    game = StagHunt()
     
     player1_probs, player2_probs = run_experiments(
         q_learning=boltzman_q, 
@@ -92,7 +92,8 @@ def multi_plot(temperature, ax):
 
 
 if __name__ == "__main__":
-    temperatures = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]  # works with any number of items
+    temperatures = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]  # works with any number of items
+    temperatures = [0.001, 0.005, 0.01, 0.05, 0.1, 0.2]  # works with any number of items
     num_temps = len(temperatures)
 
     max_cols = min(3, num_temps)
