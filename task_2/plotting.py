@@ -2,23 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-# # Define the payoff matrix for the Prisoner's Dilemma
-# payoff_matrix = np.array([
-#     [[3, 3], [0, 5]],  # Cooperate vs Cooperate, Cooperate vs Defect
-#     [[5, 0], [1, 1]]   # Defect vs Cooperate, Defect vs Defect
-# ])
-
-
-# p1_payoffs = payoff_matrix[:, :, 0]
-# p2_payoffs = payoff_matrix[:, :, 1]
-# print(p1_payoffs)
-# print(p2_payoffs)
-
-
-# # Set learning parameters
-# alpha = 1  # Learning rate
-# tau = 0.001  # Exploration temperature
-
 def replicator_faq_rhs(x, game, alpha = 1, tau = 0.005):
     p1_C = x[0]  # Probability of Player 1 cooperating
     p2_C = x[1]  # Probability of Player 2 cooperating
@@ -73,6 +56,36 @@ def plot_probabilities(all_player1_probs, all_player2_probs, ax):
     ax.legend()
 
 
+def plot_avg_trajectories(all_avg_player1_probs, all_avg_player2_probs, game, ax):
+    """Plots multiple average learning trajectories."""
+    
+    num_trajectories = len(all_avg_player1_probs)
+    # Use a colormap to distinguish trajectories if there are many
+    colors = plt.cm.viridis(np.linspace(0, 1, num_trajectories)) 
+
+    plotted_action_name = game.actions[game.get_plotted_action()]
+
+    for i in range(num_trajectories):
+        avg_p1_probs = all_avg_player1_probs[i]
+        avg_p2_probs = all_avg_player2_probs[i]
+        
+        # Plot each average trajectory
+        ax.plot(avg_p1_probs, avg_p2_probs, color=colors[i], linewidth=1.5, label=f"Start {i+1}")
+        
+        # Mark start and end points for each average trajectory
+        ax.plot(avg_p1_probs[0], avg_p2_probs[0], 'o', color=colors[i], markersize=8, markeredgecolor='black') # Start
+        ax.plot(avg_p1_probs[-1], avg_p2_probs[-1], 'X', color=colors[i], markersize=10, markeredgecolor='black') # End
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel(f"Player 1's Probability of {plotted_action_name}")
+    ax.set_ylabel(f"Player 2's Probability of {plotted_action_name}")
+    # Title is set in main.py now
+    # ax.set_title("Average Learning Trajectories from Fixed Starts") 
+    ax.grid(True)
+    # ax.legend() # Legend might get crowded, consider omitting or placing outside
+
+
 def plot_replicator_dynamics(game, q_learning, ax):
     # Create a grid of initial conditions
     p1_vals = np.linspace(0.1, 0.9, 10)  # Avoid exactly 0 or 1 for log function
@@ -89,7 +102,11 @@ def plot_replicator_dynamics(game, q_learning, ax):
     ax.quiver(X, Y, U, V, color='blue', alpha=0.3)
 
 
-def plot_rep_dynamics_probability(all_player1_probs, all_player2_probs, game, q_learning, ax):
-    
-    plot_probabilities(all_player1_probs, all_player2_probs, ax)
+def plot_rep_dynamics_probability(all_avg_player1_probs, all_avg_player2_probs, game, q_learning, ax):
+    """Plots average trajectories overlayed on replicator dynamics."""
+    plot_avg_trajectories(all_avg_player1_probs, all_avg_player2_probs, game, ax)
     plot_replicator_dynamics(game, q_learning, ax)
+    # Add a combined legend if desired, or rely on start/end markers
+    handles, labels = ax.get_legend_handles_labels()
+    # Example: Place legend outside plot if too crowded
+    # ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))

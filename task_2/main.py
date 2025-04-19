@@ -1,98 +1,113 @@
 from q_learning import QLearning, BoltzmannQLearning, EpsilonGreedyQLearning
 from matrix_game import MatrixGame, PrisonnersDilemma, StagHunt, MatchingPennies
+from plotting import plot_rep_dynamics_probability
 import numpy as np
 import random
-from plotting import plot_probabilities, plot_rep_dynamics_probability
 import matplotlib.pyplot as plt
 from collections import deque
 
 
-def run_experiments(
+def run_single_experiment(
     q_learning: QLearning,
     episodes: int,
-    runs: int,
     matrix_game: MatrixGame,
     alpha: float,
     gamma: float,
+    start_q_table_1: list[float],
+    start_q_table_2: list[float],
 ):
-    all_player1_probs = []
-    all_player2_probs = []
+    """Runs a single experiment trajectory for a given starting point."""
+    # Initialize Q-tables with the provided starting values
+    q_learning.reset_parameters() # Reset exploration/exploitation parameters
+    q_table_1 = np.array(start_q_table_1, dtype=float)
+    q_table_2 = np.array(start_q_table_2, dtype=float)
     
-    for run in range(runs):
-        # Initialize Q-tables with bias
-        q_learning.reset_parameters()
-        q_table_1 = np.zeros(2)
-        q_table_2 = np.zeros(2)
-        
-        q_table_1 = [random.uniform(0, 1), random.uniform(0, 1)]  # Initial bias
-        q_table_2 = [random.uniform(0, 1), random.uniform(0, 1)]  # Initial bias
-        
-        player1_coop_probs = []  # Store cooperation probabilities
-        player2_coop_probs = []  # Store cooperation probabilities
-        
-        kappa = 5
-        
-        # Track recent rewards for leniency
-        reward_buffer_1 = [deque(maxlen=kappa) for _ in range(2)]
-        reward_buffer_2 = [deque(maxlen=kappa) for _ in range(2)]
-        
-        for episode in range(episodes):
-            prob1 = q_learning.get_action_probabilities(q_table_1)[matrix_game.get_plotted_action()]  # Probability of cooperation
-            prob2 = q_learning.get_action_probabilities(q_table_2)[matrix_game.get_plotted_action()]  # Probability of cooperation
-            
-            # Store probabilities
-            player1_coop_probs.append(prob1)
-            player2_coop_probs.append(prob2)
-            
-            # Choose actions based on 1D Q-values
-            action1 = q_learning.choose_action(q_table_1)
-            action2 = q_learning.choose_action(q_table_2)
-
-            # Get rewards
-            reward1, reward2 = matrix_game.payoffs[(action1, action2)]
-            
-            # Append rewards to buffer
-            reward_buffer_1[action1].append(reward1)
-            reward_buffer_2[action2].append(reward2)
-
-            # Get max reward from buffer (lenient Q update)
-            max_reward1 = max(reward_buffer_1[action1]) if reward_buffer_1[action1] else reward1
-            max_reward2 = max(reward_buffer_2[action2]) if reward_buffer_2[action2] else reward2
-
-            # Q-learning update rule - now updates directly on 1D Q-tables
-            q_table_1[action1] += alpha * (reward1 + gamma * np.max(q_table_1) - q_table_1[action1])
-            q_table_2[action2] += alpha * (reward2 + gamma * np.max(q_table_2) - q_table_2[action2])
-            
-            # Decay temperature
-            q_learning.decay_parameters()
-        
-        all_player1_probs.append(player1_coop_probs)
-        all_player2_probs.append(player2_coop_probs)
+    player1_coop_probs = []  # Store cooperation probabilities for this run
+    player2_coop_probs = []  # Store cooperation probabilities for this run
     
-    return all_player1_probs, all_player2_probs
+    kappa = 5 # Keep leniency buffer logic as is
+    reward_buffer_1 = [deque(maxlen=kappa) for _ in range(len(q_table_1))]
+    reward_buffer_2 = [deque(maxlen=kappa) for _ in range(len(q_table_2))]
+    
+    for episode in range(episodes):
+        prob1 = q_learning.get_action_probabilities(q_table_1)[matrix_game.get_plotted_action()]
+        prob2 = q_learning.get_action_probabilities(q_table_2)[matrix_game.get_plotted_action()]
+        
+        player1_coop_probs.append(prob1)
+        player2_coop_probs.append(prob2)
+        
+        action1 = q_learning.choose_action(q_table_1)
+        action2 = q_learning.choose_action(q_table_2)
+
+        reward1, reward2 = matrix_game.payoffs[(action1, action2)]
+        
+        reward_buffer_1[action1].append(reward1)
+        reward_buffer_2[action2].append(reward2)
+
+        max_reward1 = max(reward_buffer_1[action1]) if reward_buffer_1[action1] else reward1
+        max_reward2 = max(reward_buffer_2[action2]) if reward_buffer_2[action2] else reward2
+
+        # Standard Q-learning update (as in the original code before leniency was added)
+        q_table_1[action1] += alpha * (reward1 + gamma * np.max(q_table_1) - q_table_1[action1])
+        q_table_2[action2] += alpha * (reward2 + gamma * np.max(q_table_2) - q_table_2[action2])
+
+        q_learning.decay_parameters()
+    
+    return player1_coop_probs, player2_coop_probs
 
 
 def multi_plot(temperature, ax):
     alpha = 0.003
+    gamma = 0 # No discounting for matrix games usually
+    episodes = 10000
+    runs_per_start_point = 10 # Number of runs to average for each starting point
+    
     boltzman_q = BoltzmannQLearning(temperature=temperature, temperature_min=temperature, temperature_decay=0.9999, alpha=alpha)
-    epsilon_q = EpsilonGreedyQLearning(epsilon=0.2, min_epsilon=0.01, epsilon_decay=0.999)
     game = PrisonnersDilemma()
-    
-    player1_probs, player2_probs = run_experiments(
-        q_learning=boltzman_q, 
-        episodes=10000,
-        runs=10,
-        matrix_game=game,
-        alpha=alpha,
-        gamma=0
-    )
-    
-    plot_rep_dynamics_probability(player1_probs, player2_probs, game, q_learning=boltzman_q, ax=ax)
-    ax.set_title(f"Temp = {temperature}")
+
+    # Define fixed starting points (Q-values for [Cooperate, Defect])
+    fixed_start_points = [
+        ([1, 0], [0, 1]), # P1: Coop, P2: Defect
+        ([0.5, 0], [0, 0.5]), # P1: Coop, P2: Defect
+        ([0, 1], [1, 0]), # P1: Defect, P2: Coop
+        ([0, 0.5], [0.5, 0]), # P1: Defect, P2: Coop
+        ([0, 0], [0, 0]), # Neutral start
+        ([1, 0], [1, 0]), # Both cooperate
+    ]
+
+    all_avg_player1_probs = []
+    all_avg_player2_probs = []
+
+    for start_q1, start_q2 in fixed_start_points:
+        runs_player1_probs = []
+        runs_player2_probs = []
+        for _ in range(runs_per_start_point):
+            p1_probs, p2_probs = run_single_experiment(
+                q_learning=boltzman_q,
+                episodes=episodes,
+                matrix_game=game,
+                alpha=alpha,
+                gamma=gamma,
+                start_q_table_1=start_q1,
+                start_q_table_2=start_q2
+            )
+            runs_player1_probs.append(p1_probs)
+            runs_player2_probs.append(p2_probs)
+        
+        # Calculate the average trajectory for this starting point
+        avg_p1_probs = np.mean(runs_player1_probs, axis=0)
+        avg_p2_probs = np.mean(runs_player2_probs, axis=0)
+        
+        all_avg_player1_probs.append(avg_p1_probs)
+        all_avg_player2_probs.append(avg_p2_probs)
+
+    # Pass the list of average trajectories to the plotting function
+    plot_rep_dynamics_probability(all_avg_player1_probs, all_avg_player2_probs, game, q_learning=boltzman_q, ax=ax)
+    ax.set_title(f"Avg Trajectories (Temp = {temperature})")
 
 
 if __name__ == "__main__":
-    temperatures = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]  # works with any number of items
+    temperatures = [1, 0.5, 0.1]  # works with any number of items
     num_temps = len(temperatures)
 
     max_cols = min(3, num_temps)
@@ -109,12 +124,11 @@ if __name__ == "__main__":
 
     for i, temp in enumerate(temperatures):
         multi_plot(temp, ax=axes[i])
-        axes[i].set_title(f"Temp = {temp}")
 
     # Hide any unused subplots (only applies when num_temps < rows * cols)
     for j in range(num_temps, len(axes)):
         fig.delaxes(axes[j])
 
-    fig.suptitle("Boltzmann Q-Learning: Cooperation Probabilities Across Temperatures", fontsize=11)
-    # plt.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.suptitle("Boltzmann Q-Learning: Average Cooperation Probability Trajectories from Fixed Starts", fontsize=11)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout slightly
     plt.show()
