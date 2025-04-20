@@ -14,15 +14,13 @@ from q_learning import QLearning
 
 def replicator_dynamics_equation(x, game, alpha=1, tau=0.1):
     """
-    Calculate the right-hand side of the replicator dynamics equation.
-    
-    Implements the Frequency Adjusted Q-learning (FAQ) dynamics equation.
+    Calculate the right-hand side of the standard replicator dynamics equation.
     
     Args:
         x: Current state [p1_coop_prob, p2_coop_prob]
         game: Matrix game instance
-        alpha: Learning rate
-        tau: Temperature parameter (for Boltzmann Q-learning)
+        alpha: Learning rate (scaling factor)
+        tau: Temperature parameter (not used in standard replicator dynamics)
         
     Returns:
         List containing the derivatives [dp1/dt, dp2/dt]
@@ -49,13 +47,18 @@ def replicator_dynamics_equation(x, game, alpha=1, tau=0.1):
     avg_f1 = p1_C * f1_C + (1 - p1_C) * f1_D
     avg_f2 = p2_C * f2_C + (1 - p2_C) * f2_D
     
-    # Entropy terms for the FAQ dynamics
-    entropy_p1 = np.log(p1_C) - (p1_C * np.log(p1_C) + (1 - p1_C) * np.log(1 - p1_C))
-    entropy_p2 = np.log(p2_C) - (p2_C * np.log(p2_C) + (1 - p2_C) * np.log(1 - p2_C))
+    # # Entropy terms for the FAQ dynamics
+    # entropy_p1 = np.log(p1_C) - (p1_C * np.log(p1_C) + (1 - p1_C) * np.log(1 - p1_C))
+    # entropy_p2 = np.log(p2_C) - (p2_C * np.log(p2_C) + (1 - p2_C) * np.log(1 - p2_C))
     
-    # Replicator dynamics with FAQ modifications
-    dot_x_p1_C = (alpha * p1_C / tau) * (f1_C - avg_f1) - alpha * p1_C * entropy_p1
-    dot_x_p2_C = (alpha * p2_C / tau) * (f2_C - avg_f2) - alpha * p2_C * entropy_p2
+    # # Replicator dynamics with FAQ modifications
+    # dot_x_p1_C = (alpha * p1_C / tau) * (f1_C - avg_f1) - alpha * p1_C * entropy_p1
+    # dot_x_p2_C = (alpha * p2_C / tau) * (f2_C - avg_f2) - alpha * p2_C * entropy_p2
+    
+    # Standard replicator dynamics equation: dx/dt = x * (fitness - average_fitness)
+    # The alpha parameter scales the rate of change
+    dot_x_p1_C = alpha * p1_C * (f1_C - avg_f1)
+    dot_x_p2_C = alpha * p2_C * (f2_C - avg_f2)
     
     return [dot_x_p1_C, dot_x_p2_C]
 

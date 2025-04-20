@@ -8,6 +8,7 @@ This module provides base class and concrete implementations for:
 import random
 from abc import ABC, abstractmethod
 import numpy as np
+import copy as cp
 
 # Available actions for all agents (assuming 2x2 games)
 ACTIONS = [0, 1]
@@ -52,6 +53,16 @@ class QLearning(ABC):
     @abstractmethod
     def reset_parameters(self) -> None:
         """Reset exploration/exploitation parameters to initial values."""
+        pass
+        
+    @abstractmethod
+    def copy(self):
+        """
+        Create a deep copy of this learning algorithm.
+        
+        Returns:
+            QLearning: A new instance with the same parameters
+        """
         pass
 
 
@@ -121,6 +132,20 @@ class EpsilonGreedyQLearning(QLearning):
     def reset_parameters(self):
         """Reset epsilon to its initial value."""
         self.epsilon = self.starter_epsilon
+        
+    def copy(self):
+        """
+        Create a deep copy of this learning algorithm.
+        
+        Returns:
+            EpsilonGreedyQLearning: A new instance with the same parameters
+        """
+        return EpsilonGreedyQLearning(
+            epsilon=self.starter_epsilon,
+            min_epsilon=self.min_epsilon,
+            epsilon_decay=self.epsilon_decay,
+            alpha=self.alpha
+        )
 
 
 class BoltzmannQLearning(QLearning):
@@ -195,3 +220,17 @@ class BoltzmannQLearning(QLearning):
     def reset_parameters(self):
         """Reset temperature to its initial value."""
         self.temperature = self.starter_temperature
+        
+    def copy(self):
+        """
+        Create a deep copy of this learning algorithm.
+        
+        Returns:
+            BoltzmannQLearning: A new instance with the same parameters
+        """
+        return BoltzmannQLearning(
+            temperature=self.starter_temperature,
+            temperature_min=self.temperature_min,
+            temperature_decay=self.temperature_decay,
+            alpha=self.alpha
+        )
