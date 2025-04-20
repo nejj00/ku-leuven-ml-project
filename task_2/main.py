@@ -104,7 +104,7 @@ def run_temperature_comparison_experiment(temperatures, game_class=PrisonnersDil
     plt.show()
 
 
-def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_processes=None):
+def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_processes=None, use_leniency=False):
     """
     Run experiments with different games using the same learning algorithm.
     
@@ -120,9 +120,9 @@ def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_process
     start_time = time.time()
     
     # Experiment parameters
-    alpha = 0.01    # Learning rate
+    alpha = 0.005    # Learning rate
     gamma = 0       # No discounting for matrix games
-    episodes = 15000  
+    episodes = 10000 
     runs_per_start_point = 30
     
     # Get default starting points for the experiments
@@ -149,7 +149,7 @@ def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_process
         game = game_class()
         
         # Use lenient learning for social dilemmas (PD and Stag Hunt) but not for zero-sum games
-        use_leniency = game_class.__name__ in ["PrisonnersDilemma", "StagHunt"]
+        leniency_aux = game_class.__name__ in ["StagHunt", "SubsidyGame"] and use_leniency
         
         # Run the experiments with parallel processing
         all_avg_player1_probs, all_avg_player2_probs = run_multiple_experiments(
@@ -160,12 +160,12 @@ def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_process
             alpha=alpha,
             gamma=gamma,
             runs_per_start_point=runs_per_start_point,
-            use_leniency=use_leniency,
+            use_leniency=leniency_aux,
             n_processes=n_processes
         )
         
         # Create the visualization
-        leniency_str = " (with Leniency)" if use_leniency else ""
+        leniency_str = " (with Leniency)" if leniency_aux else ""
         plot_combined_visualization(
             all_avg_player1_probs, 
             all_avg_player2_probs, 
@@ -203,18 +203,18 @@ if __name__ == "__main__":
     print(f"Using {use_cores} cores for parallel processing")
     
     # Example 1: Compare different temperatures for Boltzmann Q-learning
-    temperatures = [1.0, 0.5, 0.1]
-    run_temperature_comparison_experiment(temperatures, n_processes=use_cores)
+    # temperatures = [1.0, 0.5, 0.1]
+    # run_temperature_comparison_experiment(temperatures, n_processes=use_cores)
     
     # Example 2: Compare different games with a single learning algorithm
-    # games = [PrisonnersDilemma, StagHunt, MatchingPennies]
-    # boltzmann_q = BoltzmannQLearning(
-    #     temperature=1.0,
-    #     temperature_min=0.05,
-    #     temperature_decay=0.9998,
-    #     alpha=0.01
-    # )
-    # run_game_comparison_experiment(games, boltzmann_q, n_processes=use_cores)
+    games = [PrisonnersDilemma, StagHunt, MatchingPennies]
+    boltzmann_q = BoltzmannQLearning(
+        temperature=1.0,
+        temperature_min=0.01,
+        temperature_decay=0.999,
+        alpha=0.01
+    )
+    run_game_comparison_experiment(games, boltzmann_q, n_processes=use_cores, use_leniency=False)
     
     # Example 3: Compare different learning algorithms on the same game
     # Uncomment to run this experiment
