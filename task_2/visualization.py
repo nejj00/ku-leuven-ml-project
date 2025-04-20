@@ -96,6 +96,7 @@ def plot_trajectories(all_player1_probs, all_player2_probs, ax, game=None):
     # Configure plot
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
+    ax.set_aspect('equal')  # Ensure equal scaling of both axes
     
     # Set labels based on game if provided
     if game:
@@ -141,6 +142,7 @@ def plot_avg_trajectories(all_avg_player1_probs, all_avg_player2_probs, game, ax
     # Configure plot
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
+    ax.set_aspect('equal')  # Ensure equal scaling of both axes
     ax.set_xlabel(f"Player 1's Probability of {plotted_action_name}")
     ax.set_ylabel(f"Player 2's Probability of {plotted_action_name}")
     ax.grid(True)
@@ -181,6 +183,11 @@ def plot_replicator_dynamics(game, q_learning, ax):
 
     # Plot the vector field
     ax.quiver(X, Y, U, V, color='blue', alpha=0.3)
+    
+    # Ensure equal scaling
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_aspect('equal')
 
 
 def plot_combined_visualization(all_avg_player1_probs, all_avg_player2_probs, game, q_learning, ax, title=None):
