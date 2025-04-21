@@ -34,21 +34,22 @@ def replicator_lfaq_rhs(x, game, alpha=1.0, tau=0.005, kappa=3):
     x1 = np.array([p1_C, 1 - p1_C])
     x2 = np.array([p2_C, 1 - p2_C])
 
-    A = game.get_payoff_matrix_player1()
-    B = game.get_payoff_matrix_player2()
+    p1_payoffs = game.get_payoff_matrix_player1()
+    p2_payoffs = game.get_payoff_matrix_player2()
 
     # Lenient expected utilities
-    f1 = lenient_expected_utility(A, x2, kappa)
-    f2 = lenient_expected_utility(B.T, x1, kappa)  # B.T because column player
+    f1_C = lenient_expected_utility(p1_payoffs, x2, kappa)
+    f2_C = lenient_expected_utility(p2_payoffs.T, x1, kappa)  # B.T because column player
 
-    avg_f1 = np.dot(x1, f1)
-    avg_f2 = np.dot(x2, f2)
+    # Average payoffs
+    avg_f1 = np.dot(x1, f1_C)
+    avg_f2 = np.dot(x2, f2_C)
 
     # Replicator dynamics with entropy correction (Boltzmann-like)
-    dot_x1 = (alpha * x1[0] / tau) * (f1[0] - avg_f1) - alpha * x1[0] * (np.log(x1[0]) - np.dot(x1, np.log(x1)))
-    dot_x2 = (alpha * x2[0] / tau) * (f2[0] - avg_f2) - alpha * x2[0] * (np.log(x2[0]) - np.dot(x2, np.log(x2)))
+    dot_x1_C = (alpha * x1[0] / tau) * (f1_C[0] - avg_f1) - alpha * x1[0] * (np.log(x1[0]) - np.dot(x1, np.log(x1)))
+    dot_x2_C = (alpha * x2[0] / tau) * (f2_C[0] - avg_f2) - alpha * x2[0] * (np.log(x2[0]) - np.dot(x2, np.log(x2)))
 
-    return [dot_x1, dot_x2]
+    return [dot_x1_C, dot_x2_C]
 
 
 def replicator_faq_rhs(x, game, alpha = 1, tau = 0.005):
