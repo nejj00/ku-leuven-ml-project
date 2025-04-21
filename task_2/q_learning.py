@@ -156,7 +156,7 @@ class BoltzmannQLearning(QLearning):
     - Higher temperature: more exploration (more uniform distribution)
     - Lower temperature: more exploitation (more peaked distribution)
     """
-    def __init__(self, temperature, temperature_min, temperature_decay, alpha=0.1):
+    def __init__(self, temperature, temperature_min, temperature_decay, alpha=0.1, lenient=False, kappa=0):
         """
         Initialize Boltzmann Q-learning parameters.
         
@@ -171,6 +171,8 @@ class BoltzmannQLearning(QLearning):
         self.temperature_min = temperature_min
         self.temperature_decay = temperature_decay
         self.alpha = alpha
+        self.lenient = lenient
+        self.kappa = kappa
 
     def softmax(self, q_values):
         """
@@ -232,5 +234,7 @@ class BoltzmannQLearning(QLearning):
             temperature=self.starter_temperature,
             temperature_min=self.temperature_min,
             temperature_decay=self.temperature_decay,
-            alpha=self.alpha
+            alpha=self.alpha,
+            lenient=self.lenient,
+            kappa=self.kappa
         )

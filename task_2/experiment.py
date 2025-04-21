@@ -50,7 +50,7 @@ def run_single_experiment(
     player2_coop_probs = []  # Store cooperation probabilities for this run
     
     # Setup for lenient learning if enabled
-    kappa = 5  # Leniency buffer size
+    kappa = getattr(q_learning, 'kappa', 0)  # Leniency buffer size; default 0 if not Boltzmann
     reward_buffer_1 = [deque(maxlen=kappa) for _ in range(len(q_table_1))]
     reward_buffer_2 = [deque(maxlen=kappa) for _ in range(len(q_table_2))]
     

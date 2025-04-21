@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 import time
 
-from matrix_game import MatrixGame, PrisonnersDilemma, StagHunt, MatchingPennies
+from matrix_game import MatrixGame, PrisonnersDilemma, StagHunt, MatchingPennies, SubsidyGame
 from q_learning import BoltzmannQLearning, EpsilonGreedyQLearning
 from experiment import run_multiple_experiments, get_default_starting_points
 from visualization import plot_combined_visualization
@@ -104,7 +104,7 @@ def run_temperature_comparison_experiment(temperatures, game_class=PrisonnersDil
     plt.show()
 
 
-def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_processes=None, use_leniency=False):
+def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_processes=None):
     """
     Run experiments with different games using the same learning algorithm.
     
@@ -149,7 +149,7 @@ def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_process
         game = game_class()
         
         # Use lenient learning for social dilemmas (PD and Stag Hunt) but not for zero-sum games
-        leniency_aux = game_class.__name__ in ["StagHunt", "SubsidyGame"] and use_leniency
+        leniency_aux = game_class.__name__ in ["StagHunt", "SubsidyGame"] and q_learning_algorithm.lenient
         
         # Run the experiments with parallel processing
         all_avg_player1_probs, all_avg_player2_probs = run_multiple_experiments(
@@ -172,7 +172,8 @@ def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_process
             game, 
             q_learning_algorithm, 
             axes[i],
-            title=f"{game.name}{leniency_str}"
+            title=f"{game.name}{leniency_str}",
+            use_leniency=leniency_aux
         )
 
     # Hide any unused subplots
@@ -199,7 +200,7 @@ if __name__ == "__main__":
     print(f"Running with {num_cores} CPU cores available")
     
     # Set number of processes to use (you can adjust this parameter)
-    use_cores = max(1, num_cores - 1)  # Use all cores except one by default
+    use_cores = max(1, num_cores // 2)  # Use all cores except one by default
     print(f"Using {use_cores} cores for parallel processing")
     
     # Example 1: Compare different temperatures for Boltzmann Q-learning
@@ -208,13 +209,24 @@ if __name__ == "__main__":
     
     # Example 2: Compare different games with a single learning algorithm
     games = [PrisonnersDilemma, StagHunt, MatchingPennies]
+    
     boltzmann_q = BoltzmannQLearning(
         temperature=1.0,
         temperature_min=0.01,
         temperature_decay=0.999,
         alpha=0.01
     )
-    run_game_comparison_experiment(games, boltzmann_q, n_processes=use_cores, use_leniency=False)
+    
+    lenient_boltzmann_q = BoltzmannQLearning(
+        temperature=1.0,
+        temperature_min=0.01,
+        temperature_decay=0.999,
+        alpha=1.0,
+        lenient=True,
+        kappa=5
+    )
+    
+    run_game_comparison_experiment(games, boltzmann_q, n_processes=use_cores)
     
     # Example 3: Compare different learning algorithms on the same game
     # Uncomment to run this experiment
