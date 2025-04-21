@@ -221,12 +221,12 @@ if __name__ == "__main__":
         temperature=1.0,
         temperature_min=0.01,
         temperature_decay=0.999,
-        alpha=1.0,
+        alpha=0.01,
         lenient=True,
         kappa=5
     )
     
-    run_game_comparison_experiment(games, boltzmann_q, n_processes=use_cores)
+    run_game_comparison_experiment(games, lenient_boltzmann_q, n_processes=use_cores)
     
     # Example 3: Compare different learning algorithms on the same game
     # Uncomment to run this experiment

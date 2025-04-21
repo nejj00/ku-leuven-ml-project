@@ -220,8 +220,8 @@ def plot_replicator_dynamics(game, q_learning, ax, use_leniency=False):
                 dxdt = replicator_dynamics_equation_lenient(
                     x=[X[i, j], Y[i, j]], 
                     game=game, 
-                    # alpha=q_learning.alpha, 
-                    # tau=getattr(q_learning, 'temperature', 0.1),  # Default if not Boltzmann
+                    alpha=q_learning.alpha, 
+                    tau=getattr(q_learning, 'temperature_min', 0.01),  # Default if not Boltzmann
                     kappa=getattr(q_learning, 'kappa', 5)  # Example leniency parameter
                 )
             else:
