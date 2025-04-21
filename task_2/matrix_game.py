@@ -117,3 +117,29 @@ class MatchingPennies(MatrixGame):
     def get_plotted_action(self):
         """Return the heads action for plotting."""
         return self.HEADS
+
+class SubsidyGame(MatrixGame):
+    """
+    Stag Hunt game implementation.
+    
+    A coordination game with two Nash equilibria:
+    - Risk-dominant equilibrium (both hunt hare)
+    - Payoff-dominant equilibrium (both hunt stag)
+    """
+    name = "Subsidy Game"
+    ACTION_1 = 0  # Cooperative action
+    ACTION_2 = 1  # Safe action
+    
+    # Payoff Matrix
+    payoffs = {
+        (ACTION_1, ACTION_1): (12, 12),       # High payoff coordination
+        (ACTION_1, ACTION_2): (0, 11),     # Miscoordination (stag hunter gets nothing)
+        (ACTION_2, ACTION_1): (11, 0),     # Miscoordination (stag hunter gets nothing)
+        (ACTION_2, ACTION_2): (10, 10)    # Low payoff coordination
+    }
+    
+    actions = ["Stag", "Hare"]
+    
+    def get_plotted_action(self):
+        """Return the cooperative action (hunting stag) for plotting."""
+        return self.ACTION_1
