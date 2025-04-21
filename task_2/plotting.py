@@ -2,6 +2,55 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def lenient_expected_utility(A, y, kappa):
+    """
+    Computes the lenient utility vector u for a player given their payoff matrix A and opponent policy y.
+    """
+    u = np.zeros_like(y)
+    for i in range(len(u)):  # For each action i
+        numerator = 0.0
+        for j in range(len(y)):  # For each opponent action j
+            a_ij = A[i, j]
+            y_j = y[j]
+
+            # Probabilities for leniency adjustments
+            sum_leq = sum(y[m] for m in range(len(y)) if A[i, m] <= a_ij)
+            sum_lt  = sum(y[m] for m in range(len(y)) if A[i, m] < a_ij)
+            sum_eq  = sum(y[m] for m in range(len(y)) if A[i, m] == a_ij)
+
+            # Avoid division by zero
+            if sum_eq > 0:
+                delta = (sum_leq ** kappa - sum_lt ** kappa) / sum_eq
+                numerator += a_ij * y_j * delta
+
+        u[i] = numerator
+    return u
+
+
+def replicator_lfaq_rhs(x, game, alpha=1.0, tau=0.005, kappa=3):
+    p1_C = x[0]
+    p2_C = x[1]
+
+    x1 = np.array([p1_C, 1 - p1_C])
+    x2 = np.array([p2_C, 1 - p2_C])
+
+    A = game.get_payoff_matrix_player1()
+    B = game.get_payoff_matrix_player2()
+
+    # Lenient expected utilities
+    f1 = lenient_expected_utility(A, x2, kappa)
+    f2 = lenient_expected_utility(B.T, x1, kappa)  # B.T because column player
+
+    avg_f1 = np.dot(x1, f1)
+    avg_f2 = np.dot(x2, f2)
+
+    # Replicator dynamics with entropy correction (Boltzmann-like)
+    dot_x1 = (alpha * x1[0] / tau) * (f1[0] - avg_f1) - alpha * x1[0] * (np.log(x1[0]) - np.dot(x1, np.log(x1)))
+    dot_x2 = (alpha * x2[0] / tau) * (f2[0] - avg_f2) - alpha * x2[0] * (np.log(x2[0]) - np.dot(x2, np.log(x2)))
+
+    return [dot_x1, dot_x2]
+
+
 def replicator_faq_rhs(x, game, alpha = 1, tau = 0.005):
     p1_C = x[0]  # Probability of Player 1 cooperating
     p2_C = x[1]  # Probability of Player 2 cooperating
@@ -88,8 +137,8 @@ def plot_avg_trajectories(all_avg_player1_probs, all_avg_player2_probs, game, ax
 
 def plot_replicator_dynamics(game, q_learning, ax):
     # Create a grid of initial conditions
-    p1_vals = np.linspace(0.1, 0.9, 10)  # Avoid exactly 0 or 1 for log function
-    p2_vals = np.linspace(0.1, 0.9, 10)
+    p1_vals = np.linspace(0, 1, 10)  # Avoid exactly 0 or 1 for log function
+    p2_vals = np.linspace(0, 1, 10)
     X, Y = np.meshgrid(p1_vals, p2_vals)
     U, V = np.zeros_like(X), np.zeros_like(Y)
 
