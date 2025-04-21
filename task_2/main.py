@@ -1,119 +1,51 @@
-from q_learning import QLearning, BoltzmannQLearning, EpsilonGreedyQLearning
-from matrix_game import MatrixGame, PrisonnersDilemma, StagHunt, MatchingPennies
-from plotting import plot_rep_dynamics_probability
+"""
+Main script for running multi-agent reinforcement learning experiments.
+
+This script coordinates the execution of experiments with different
+learning algorithms and matrix games, and visualizes the results.
+"""
 import numpy as np
-import random
 import matplotlib.pyplot as plt
-from collections import deque
+import multiprocessing as mp
+import time
+
+from matrix_game import MatrixGame, PrisonnersDilemma, StagHunt, MatchingPennies
+from q_learning import BoltzmannQLearning, EpsilonGreedyQLearning
+from experiment import run_multiple_experiments, get_default_starting_points
+from visualization import plot_combined_visualization
 
 
-def run_single_experiment(
-    q_learning: QLearning,
-    episodes: int,
-    matrix_game: MatrixGame,
-    alpha: float,
-    gamma: float,
-    start_q_table_1: list[float],
-    start_q_table_2: list[float],
-):
-    """Runs a single experiment trajectory for a given starting point."""
-    # Initialize Q-tables with the provided starting values
-    q_learning.reset_parameters() # Reset exploration/exploitation parameters
-    q_table_1 = np.array(start_q_table_1, dtype=float)
-    q_table_2 = np.array(start_q_table_2, dtype=float)
+def run_temperature_comparison_experiment(temperatures, game_class=PrisonnersDilemma, n_processes=None):
+    """
+    Run experiments with Boltzmann Q-learning at different temperatures.
     
-    player1_coop_probs = []  # Store cooperation probabilities for this run
-    player2_coop_probs = []  # Store cooperation probabilities for this run
-    
-    kappa = 5 # Keep leniency buffer logic as is
-    reward_buffer_1 = [deque(maxlen=kappa) for _ in range(len(q_table_1))]
-    reward_buffer_2 = [deque(maxlen=kappa) for _ in range(len(q_table_2))]
-    
-    for episode in range(episodes):
-        prob1 = q_learning.get_action_probabilities(q_table_1)[matrix_game.get_plotted_action()]
-        prob2 = q_learning.get_action_probabilities(q_table_2)[matrix_game.get_plotted_action()]
+    Args:
+        temperatures: List of temperature values to test
+        game_class: The matrix game class to use
+        n_processes: Number of processes to use (None = use all available cores)
         
-        player1_coop_probs.append(prob1)
-        player2_coop_probs.append(prob2)
-        
-        action1 = q_learning.choose_action(q_table_1)
-        action2 = q_learning.choose_action(q_table_2)
-
-        reward1, reward2 = matrix_game.payoffs[(action1, action2)]
-        
-        reward_buffer_1[action1].append(reward1)
-        reward_buffer_2[action2].append(reward2)
-
-        max_reward1 = max(reward_buffer_1[action1]) if reward_buffer_1[action1] else reward1
-        max_reward2 = max(reward_buffer_2[action2]) if reward_buffer_2[action2] else reward2
-
-        # Standard Q-learning update (as in the original code before leniency was added)
-        q_table_1[action1] += alpha * (reward1 + gamma * np.max(q_table_1) - q_table_1[action1])
-        q_table_2[action2] += alpha * (reward2 + gamma * np.max(q_table_2) - q_table_2[action2])
-
-        q_learning.decay_parameters()
+    Returns:
+        None (displays plots)
+    """
+    # Log start time for performance measurement
+    start_time = time.time()
     
-    return player1_coop_probs, player2_coop_probs
-
-
-def multi_plot(temperature, ax):
-    alpha = 0.003
-    gamma = 0 # No discounting for matrix games usually
+    # Experiment parameters
+    alpha = 0.003  # Learning rate
+    gamma = 0      # No discounting for matrix games
     episodes = 10000
-    runs_per_start_point = 10 # Number of runs to average for each starting point
+    runs_per_start_point = 10
     
-    boltzman_q = BoltzmannQLearning(temperature=temperature, temperature_min=temperature, temperature_decay=0.9999, alpha=alpha)
-    game = PrisonnersDilemma()
-
-    # Define fixed starting points (Q-values for [Cooperate, Defect])
-    fixed_start_points = [
-        ([1, 0], [0, 1]), # P1: Coop, P2: Defect
-        ([0.5, 0], [0, 0.5]), # P1: Coop, P2: Defect
-        ([0, 1], [1, 0]), # P1: Defect, P2: Coop
-        ([0, 0.5], [0.5, 0]), # P1: Defect, P2: Coop
-        ([0, 0], [0, 0]), # Neutral start
-        ([1, 0], [1, 0]), # Both cooperate
-    ]
-
-    all_avg_player1_probs = []
-    all_avg_player2_probs = []
-
-    for start_q1, start_q2 in fixed_start_points:
-        runs_player1_probs = []
-        runs_player2_probs = []
-        for _ in range(runs_per_start_point):
-            p1_probs, p2_probs = run_single_experiment(
-                q_learning=boltzman_q,
-                episodes=episodes,
-                matrix_game=game,
-                alpha=alpha,
-                gamma=gamma,
-                start_q_table_1=start_q1,
-                start_q_table_2=start_q2
-            )
-            runs_player1_probs.append(p1_probs)
-            runs_player2_probs.append(p2_probs)
-        
-        # Calculate the average trajectory for this starting point
-        avg_p1_probs = np.mean(runs_player1_probs, axis=0)
-        avg_p2_probs = np.mean(runs_player2_probs, axis=0)
-        
-        all_avg_player1_probs.append(avg_p1_probs)
-        all_avg_player2_probs.append(avg_p2_probs)
-
-    # Pass the list of average trajectories to the plotting function
-    plot_rep_dynamics_probability(all_avg_player1_probs, all_avg_player2_probs, game, q_learning=boltzman_q, ax=ax)
-    ax.set_title(f"Avg Trajectories (Temp = {temperature})")
-
-
-if __name__ == "__main__":
-    temperatures = [1, 0.5, 0.1]  # works with any number of items
+    # Get default starting points for the experiments
+    fixed_start_points = get_default_starting_points()
+    
+    # Create a figure with subplots for each temperature
     num_temps = len(temperatures)
-
     max_cols = min(3, num_temps)
     cols = max_cols
     rows = (num_temps + cols - 1) // cols
 
+    # Create the figure and axes
     fig, axes = plt.subplots(rows, cols, figsize=(8 * cols, 6 * rows))
 
     # Normalize axes to be a flat array no matter what
@@ -122,13 +54,211 @@ if __name__ == "__main__":
     else:
         axes = axes.flatten()
 
+    # Run experiments for each temperature
     for i, temp in enumerate(temperatures):
-        multi_plot(temp, ax=axes[i])
+        # Initialize the game and learning algorithm
+        game = game_class()
+        boltzmann_q = BoltzmannQLearning(
+            temperature=temp,
+            temperature_min=0.01,  # Allow temperature to decay to a small value for better exploitation
+            temperature_decay=0.9999,
+            alpha=alpha
+        )
+        
+        # Run the experiments with parallel processing
+        all_avg_player1_probs, all_avg_player2_probs = run_multiple_experiments(
+            q_learning=boltzmann_q,
+            matrix_game=game,
+            fixed_start_points=fixed_start_points,
+            episodes=episodes,
+            alpha=alpha,
+            gamma=gamma,
+            runs_per_start_point=runs_per_start_point,
+            n_processes=n_processes
+        )
+        
+        # Create the visualization
+        title = f"Temperature = {temp}"
+        plot_combined_visualization(
+            all_avg_player1_probs, 
+            all_avg_player2_probs, 
+            game, 
+            boltzmann_q, 
+            axes[i],
+            title=title
+        )
 
-    # Hide any unused subplots (only applies when num_temps < rows * cols)
+    # Hide any unused subplots
     for j in range(num_temps, len(axes)):
         fig.delaxes(axes[j])
 
-    fig.suptitle("Boltzmann Q-Learning: Average Cooperation Probability Trajectories from Fixed Starts", fontsize=11)
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout slightly
+    # Add title and adjust layout
+    fig.suptitle(f"Boltzmann Q-Learning: {game.name} - Average Cooperation Probability Trajectories", 
+                fontsize=16)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    # Log and display execution time
+    execution_time = time.time() - start_time
+    print(f"Execution time: {execution_time:.2f} seconds")
+    
     plt.show()
+
+
+def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_processes=None, use_leniency=False):
+    """
+    Run experiments with different games using the same learning algorithm.
+    
+    Args:
+        game_classes: List of game classes to test
+        q_learning_algorithm: The Q-learning algorithm to use
+        n_processes: Number of processes to use (None = use all available cores)
+        
+    Returns:
+        None (displays plots)
+    """
+    # Log start time for performance measurement
+    start_time = time.time()
+    
+    # Experiment parameters
+    alpha = 0.005    # Learning rate
+    gamma = 0       # No discounting for matrix games
+    episodes = 10000 
+    runs_per_start_point = 30
+    
+    # Get default starting points for the experiments
+    fixed_start_points = get_default_starting_points()
+    
+    # Create a figure with subplots for each game
+    num_games = len(game_classes)
+    max_cols = min(3, num_games)
+    cols = max_cols
+    rows = (num_games + cols - 1) // cols
+
+    # Create the figure and axes
+    fig, axes = plt.subplots(rows, cols, figsize=(8 * cols, 6 * rows))
+
+    # Normalize axes to be a flat array no matter what
+    if num_games == 1:
+        axes = [axes]  # single Axes object -> wrap in list
+    else:
+        axes = axes.flatten()
+
+    # Run experiments for each game
+    for i, game_class in enumerate(game_classes):
+        # Initialize the game
+        game = game_class()
+        
+        # Use lenient learning for social dilemmas (PD and Stag Hunt) but not for zero-sum games
+        leniency_aux = game_class.__name__ in ["StagHunt", "SubsidyGame"] and use_leniency
+        
+        # Run the experiments with parallel processing
+        all_avg_player1_probs, all_avg_player2_probs = run_multiple_experiments(
+            q_learning=q_learning_algorithm,
+            matrix_game=game,
+            fixed_start_points=fixed_start_points,
+            episodes=episodes,
+            alpha=alpha,
+            gamma=gamma,
+            runs_per_start_point=runs_per_start_point,
+            use_leniency=leniency_aux,
+            n_processes=n_processes
+        )
+        
+        # Create the visualization
+        leniency_str = " (with Leniency)" if leniency_aux else ""
+        plot_combined_visualization(
+            all_avg_player1_probs, 
+            all_avg_player2_probs, 
+            game, 
+            q_learning_algorithm, 
+            axes[i],
+            title=f"{game.name}{leniency_str}"
+        )
+
+    # Hide any unused subplots
+    for j in range(num_games, len(axes)):
+        fig.delaxes(axes[j])
+
+    # Get algorithm name for title
+    algo_name = q_learning_algorithm.__class__.__name__
+    
+    # Add title and adjust layout
+    fig.suptitle(f"{algo_name}: Comparison Across Different Games", fontsize=16)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    # Log and display execution time
+    execution_time = time.time() - start_time
+    print(f"Execution time: {execution_time:.2f} seconds")
+    
+    plt.show()
+
+
+if __name__ == "__main__":
+    # Get number of available CPU cores
+    num_cores = mp.cpu_count()
+    print(f"Running with {num_cores} CPU cores available")
+    
+    # Set number of processes to use (you can adjust this parameter)
+    use_cores = max(1, num_cores - 1)  # Use all cores except one by default
+    print(f"Using {use_cores} cores for parallel processing")
+    
+    # Example 1: Compare different temperatures for Boltzmann Q-learning
+    # temperatures = [1.0, 0.5, 0.1]
+    # run_temperature_comparison_experiment(temperatures, n_processes=use_cores)
+    
+    # Example 2: Compare different games with a single learning algorithm
+    games = [PrisonnersDilemma, StagHunt, MatchingPennies]
+    boltzmann_q = BoltzmannQLearning(
+        temperature=1.0,
+        temperature_min=0.01,
+        temperature_decay=0.999,
+        alpha=0.01
+    )
+    run_game_comparison_experiment(games, boltzmann_q, n_processes=use_cores, use_leniency=False)
+    
+    # Example 3: Compare different learning algorithms on the same game
+    # Uncomment to run this experiment
+    # boltzmann_q = BoltzmannQLearning(
+    #     temperature=1.0, 
+    #     temperature_min=0.05, 
+    #     temperature_decay=0.9998, 
+    #     alpha=0.01
+    # )
+    # epsilon_q = EpsilonGreedyQLearning(
+    #     epsilon=0.3,              # Higher initial exploration
+    #     min_epsilon=0.05,         # Same floor
+    #     epsilon_decay=0.9998,     # Slower decay
+    #     alpha=0.01                # Higher learning rate
+    # )
+    # algorithms = [boltzmann_q, epsilon_q]
+    # 
+    # # Create a figure with subplots for each algorithm
+    # fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    # 
+    # for i, algo in enumerate(algorithms):
+    #     game = PrisonnersDilemma()
+    #     all_avg_player1_probs, all_avg_player2_probs = run_multiple_experiments(
+    #         q_learning=algo,
+    #         matrix_game=game,
+    #         fixed_start_points=get_default_starting_points(),
+    #         episodes=10000,
+    #         alpha=0.01,
+    #         gamma=0,
+    #         runs_per_start_point=10,
+    #         use_leniency=True,    # Enable lenient learning
+    #         n_processes=use_cores  # Use parallel processing
+    #     )
+    #     
+    #     algo_name = algo.__class__.__name__
+    #     plot_combined_visualization(
+    #         all_avg_player1_probs, 
+    #         all_avg_player2_probs, 
+    #         game, 
+    #         algo, 
+    #         axes[i],
+    #         title=f"{game.name} - {algo_name}"
+    #     )
+    # 
+    # fig.suptitle("Comparison of Q-Learning Algorithms", fontsize=16)
+    # plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # plt.show()
