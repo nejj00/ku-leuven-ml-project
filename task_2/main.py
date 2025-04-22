@@ -194,42 +194,139 @@ def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_process
     plt.show()
 
 
+def get_cardinal_starting_points():
+    """
+    Return starting points at the cardinal and intermediate directions.
+    Creates 8 points evenly spaced around the probability space.
+    
+    Returns:
+        List of (player1_q_values, player2_q_values) pairs
+    """
+    return [
+        ([0, 0], [1, 0]),      # North: P1 neutral, P2 HEADS
+        ([1, 0], [0, 0]),      # East: P1 HEADS, P2 neutral
+        ([0, 0], [0, 1]),      # South: P1 neutral, P2 TAILS
+        ([0, 1], [0, 0]),      # West: P1 TAILS, P2 neutral
+        # ([1, 0], [1, 0]),      # Northeast: Both HEADS
+        # ([0, 1], [1, 0]),      # Northwest: P1 TAILS, P2 HEADS
+        # ([1, 0], [0, 1]),      # Southeast: P1 HEADS, P2 TAILS
+        # ([0, 1], [0, 1]),      # Southwest: Both TAILS
+    ]
+
+
+def run_matching_pennies_experiment(n_processes=None):
+    """
+    Run and visualize a Matching Pennies experiment with cardinal starting points.
+    
+    Args:
+        n_processes: Number of processes to use (None = use all available cores)
+        
+    Returns:
+        None (displays plots)
+    """
+    # Log start time for performance measurement
+    start_time = time.time()
+    
+    # Experiment parameters (as specified)
+    episodes = 2000
+    runs_per_start_point = 100
+    alpha = 0.007
+    gamma = 0
+    
+    # Initialize Boltzmann Q-learning with specified parameters
+    boltzmann_pennies = BoltzmannQLearning(
+        temperature=1.0,
+        temperature_min=0,     # No minimum temperature floor (as specified)
+        temperature_decay=0.998,
+        alpha=alpha
+    )
+    
+    # Get cardinal starting points instead of default ones
+    cardinal_start_points = get_cardinal_starting_points()
+    
+    # Create the figure
+    fig, ax = plt.subplots(figsize=(10, 10))
+    
+    # Initialize the Matching Pennies game
+    game = MatchingPennies()
+    
+    # Run the experiments with parallel processing
+    all_avg_player1_probs, all_avg_player2_probs = run_multiple_experiments(
+        q_learning=boltzmann_pennies,
+        matrix_game=game,
+        fixed_start_points=cardinal_start_points,
+        episodes=episodes,
+        alpha=alpha,
+        gamma=gamma,
+        runs_per_start_point=runs_per_start_point,
+        n_processes=n_processes
+    )
+    
+    # Create the visualization
+    plot_combined_visualization(
+        all_avg_player1_probs, 
+        all_avg_player2_probs, 
+        game, 
+        boltzmann_pennies, 
+        ax,
+        title=f"Matching Pennies - Cardinal Starting Points"
+    )
+    
+    # Add extra annotations to plot
+    ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
+    ax.axvline(x=0.5, color='gray', linestyle='--', alpha=0.5)
+    
+    # Add title and adjust layout
+    fig.suptitle(f"Boltzmann Q-Learning for Matching Pennies\n{runs_per_start_point} runs × {episodes} episodes", 
+                fontsize=16)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    # Log and display execution time
+    execution_time = time.time() - start_time
+    print(f"Execution time: {execution_time:.2f} seconds")
+    
+    plt.show()
+
+
 if __name__ == "__main__":
     # Get number of available CPU cores
     num_cores = mp.cpu_count()
     print(f"Running with {num_cores} CPU cores available")
     
     # Set number of processes to use (you can adjust this parameter)
-    use_cores = max(1, num_cores // 2)  # Use all cores except one by default
+    use_cores = max(1, num_cores - 1)
     print(f"Using {use_cores} cores for parallel processing")
+    
+    # Run the new Matching Pennies experiment with cardinal starting points
+    run_matching_pennies_experiment(n_processes=use_cores)
+    
     
     # Example 1: Compare different temperatures for Boltzmann Q-learning
     # temperatures = [1.0, 0.5, 0.1]
     # run_temperature_comparison_experiment(temperatures, n_processes=use_cores)
     
     # Example 2: Compare different games with a single learning algorithm
-    games = [PrisonnersDilemma, StagHunt, MatchingPennies]
-    
-    boltzmann_q = BoltzmannQLearning(
-        temperature=1.0,
-        temperature_min=0.01,
-        temperature_decay=0.999,
-        alpha=0.01
-    )
-    
-    lenient_boltzmann_q = BoltzmannQLearning(
-        temperature=1.0,
-        temperature_min=0.01,
-        temperature_decay=0.999,
-        alpha=0.01,
-        lenient=True,
-        kappa=5
-    )
-    
-    run_game_comparison_experiment(games, lenient_boltzmann_q, n_processes=use_cores)
+    # games = [PrisonnersDilemma, StagHunt, MatchingPennies]
+    # 
+    # boltzmann_q = BoltzmannQLearning(
+    #     temperature=1.0,
+    #     temperature_min=0.01,
+    #     temperature_decay=0.999,
+    #     alpha=0.01
+    # )
+    # 
+    # lenient_boltzmann_q = BoltzmannQLearning(
+    #     temperature=1.0,
+    #     temperature_min=0.01,
+    #     temperature_decay=0.999,
+    #     alpha=0.01,
+    #     lenient=True,
+    #     kappa=5
+    # )
+    # 
+    # run_game_comparison_experiment(games, lenient_boltzmann_q, n_processes=use_cores)
     
     # Example 3: Compare different learning algorithms on the same game
-    # Uncomment to run this experiment
     # boltzmann_q = BoltzmannQLearning(
     #     temperature=1.0, 
     #     temperature_min=0.05, 
