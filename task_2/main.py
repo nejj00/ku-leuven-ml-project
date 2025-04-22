@@ -243,6 +243,10 @@ def run_matching_pennies_experiment(n_processes=None):
     
     # Get cardinal starting points instead of default ones
     cardinal_start_points = get_cardinal_starting_points()
+    total_starting_points = len(cardinal_start_points)
+    print(f"Starting experiment with {total_starting_points} different starting points")
+    print(f"Each starting point will run {runs_per_start_point} simulations in parallel")
+    print(f"Total simulations to run: {total_starting_points * runs_per_start_point}")
     
     # Create the figure
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -259,7 +263,8 @@ def run_matching_pennies_experiment(n_processes=None):
         alpha=alpha,
         gamma=gamma,
         runs_per_start_point=runs_per_start_point,
-        n_processes=n_processes
+        n_processes=n_processes,
+        print_progress=True  # Enable progress printing
     )
     
     # Create the visualization

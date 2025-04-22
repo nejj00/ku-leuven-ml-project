@@ -6,7 +6,7 @@ learning algorithms and matrix games.
 """
 import numpy as np
 from collections import deque
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 import multiprocessing as mp
 from functools import partial
 
@@ -94,6 +94,46 @@ def run_single_experiment(
     return player1_coop_probs, player2_coop_probs
 
 
+def run_single_experiment_wrapper(run_idx: int, params: dict) -> Tuple[List[float], List[float]]:
+    """
+    Wrapper function for parallel execution of single experiments.
+    
+    Args:
+        run_idx: Index of the current run (not used, but needed for mapping)
+        params: Dictionary containing all parameters for the experiment
+        
+    Returns:
+        Tuple containing:
+        - List of player 1's cooperation probabilities over time
+        - List of player 2's cooperation probabilities over time
+    """
+    # Create a fresh copy of the learning algorithm to ensure independent runs
+    q_learning_copy = params['q_learning'].copy()
+    
+    # Check if we should print progress updates
+    print_progress = params.get('print_progress', False)
+    report_interval = params.get('report_interval', 10)
+    
+    # Print progress if appropriate (only every Nth run to avoid console spam)
+    if print_progress and run_idx % report_interval == 0:
+        total_runs = params.get('total_runs', 0)
+        current_starting_point = params.get('current_starting_point', 0)
+        total_starting_points = params.get('total_starting_points', 0)
+        print(f"Starting point {current_starting_point}/{total_starting_points}: "
+              f"Running simulation {run_idx+1}/{total_runs}")
+    
+    return run_single_experiment(
+        q_learning=q_learning_copy,
+        episodes=params['episodes'],
+        matrix_game=params['matrix_game'],
+        alpha=params['alpha'],
+        gamma=params['gamma'],
+        start_q_table_1=params['start_q1'],
+        start_q_table_2=params['start_q2'],
+        use_leniency=params['use_leniency']
+    )
+
+
 def run_experiments_for_starting_point(
     start_point: Tuple[List[float], List[float]],
     q_learning: QLearning,
@@ -102,11 +142,15 @@ def run_experiments_for_starting_point(
     alpha: float,
     gamma: float,
     runs_per_start_point: int,
-    use_leniency: bool
+    use_leniency: bool,
+    n_processes: int = None,
+    print_progress: bool = False,
+    current_starting_point: int = 0,
+    total_starting_points: int = 0
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Helper function to run multiple experiments for a specific starting point.
-    This is designed to be used with multiprocessing.
+    This function now parallelizes the individual runs for a single starting point.
     
     Args:
         start_point: Tuple of (player1_q_values, player2_q_values)
@@ -117,6 +161,10 @@ def run_experiments_for_starting_point(
         gamma: Discount factor
         runs_per_start_point: Number of runs to average for this starting point
         use_leniency: Whether to use lenient learning
+        n_processes: Number of processes to use (None = use all available cores)
+        print_progress: Whether to print progress updates
+        current_starting_point: Index of current starting point
+        total_starting_points: Total number of starting points
         
     Returns:
         Tuple containing:
@@ -124,30 +172,53 @@ def run_experiments_for_starting_point(
         - Average player 2 cooperation probabilities for this starting point
     """
     start_q1, start_q2 = start_point
-    runs_player1_probs = []
-    runs_player2_probs = []
     
-    # Run multiple experiments for this starting point
-    for _ in range(runs_per_start_point):
-        # Create a fresh copy of the learning algorithm to ensure independent runs
-        q_learning_copy = q_learning.copy()
+    if print_progress:
+        print(f"Processing starting point {current_starting_point}/{total_starting_points}: {start_point}")
+    
+    # Package parameters for the wrapper function
+    params = {
+        'q_learning': q_learning,
+        'episodes': episodes,
+        'matrix_game': matrix_game,
+        'alpha': alpha,
+        'gamma': gamma,
+        'start_q1': start_q1,
+        'start_q2': start_q2,
+        'use_leniency': use_leniency,
+        'print_progress': print_progress,
+        'report_interval': 100,  # Only report every 100th run to minimize console output
+        'total_runs': runs_per_start_point,
+        'current_starting_point': current_starting_point,
+        'total_starting_points': total_starting_points
+    }
+    
+    # Run multiple experiments for this starting point in parallel
+    if n_processes != 1:  # Allow for disabling parallel processing
+        with mp.Pool(processes=n_processes) as pool:
+            # Map each run to a process
+            results = pool.map(
+                partial(run_single_experiment_wrapper, params=params),
+                range(runs_per_start_point)
+            )
         
-        p1_probs, p2_probs = run_single_experiment(
-            q_learning=q_learning_copy,
-            episodes=episodes,
-            matrix_game=matrix_game,
-            alpha=alpha,
-            gamma=gamma,
-            start_q_table_1=start_q1,
-            start_q_table_2=start_q2,
-            use_leniency=use_leniency
-        )
-        runs_player1_probs.append(p1_probs)
-        runs_player2_probs.append(p2_probs)
+        # Unpack results
+        runs_player1_probs, runs_player2_probs = zip(*results)
+    else:
+        # Sequential processing (fallback)
+        runs_player1_probs = []
+        runs_player2_probs = []
+        for run_idx in range(runs_per_start_point):
+            p1_probs, p2_probs = run_single_experiment_wrapper(run_idx, params)
+            runs_player1_probs.append(p1_probs)
+            runs_player2_probs.append(p2_probs)
     
     # Calculate the average trajectory for this starting point
     avg_p1_probs = np.mean(runs_player1_probs, axis=0)
     avg_p2_probs = np.mean(runs_player2_probs, axis=0)
+    
+    if print_progress:
+        print(f"Completed all {runs_per_start_point} runs for starting point {current_starting_point}/{total_starting_points}")
     
     return avg_p1_probs, avg_p2_probs
 
@@ -161,10 +232,12 @@ def run_multiple_experiments(
     gamma: float,
     runs_per_start_point: int = 10,
     use_leniency: bool = False,
-    n_processes: int = None
+    n_processes: int = None,
+    print_progress: bool = False
 ) -> Tuple[List[List[float]], List[List[float]]]:
     """
-    Run multiple experiments from different starting points, potentially in parallel.
+    Run multiple experiments from different starting points.
+    For each starting point, the multiple runs are executed in parallel.
     
     Args:
         q_learning: The Q-learning algorithm to use
@@ -176,6 +249,7 @@ def run_multiple_experiments(
         runs_per_start_point: Number of runs to average for each starting point
         use_leniency: Whether to use lenient learning
         n_processes: Number of processes to use (None = use all available cores)
+        print_progress: Whether to print progress updates
         
     Returns:
         Tuple containing:
@@ -184,34 +258,30 @@ def run_multiple_experiments(
     """
     all_avg_player1_probs = []
     all_avg_player2_probs = []
-
-    # Create a partial function with all fixed parameters
-    run_for_start_point = partial(
-        run_experiments_for_starting_point,
-        q_learning=q_learning,
-        matrix_game=matrix_game,
-        episodes=episodes,
-        alpha=alpha,
-        gamma=gamma,
-        runs_per_start_point=runs_per_start_point,
-        use_leniency=use_leniency
-    )
     
-    # Use multiprocessing to parallelize computations across starting points
-    if n_processes != 1:  # Allow for disabling parallel processing
-        with mp.Pool(processes=n_processes) as pool:
-            results = pool.map(run_for_start_point, fixed_start_points)
+    total_starting_points = len(fixed_start_points)
+    
+    # Process each starting point (sequentially)
+    for idx, start_point in enumerate(fixed_start_points):
+        current_starting_point = idx + 1  # 1-indexed for user display
         
-        # Extract results
-        for avg_p1_probs, avg_p2_probs in results:
-            all_avg_player1_probs.append(avg_p1_probs)
-            all_avg_player2_probs.append(avg_p2_probs)
-    else:
-        # Sequential processing (fallback)
-        for start_point in fixed_start_points:
-            avg_p1_probs, avg_p2_probs = run_for_start_point(start_point)
-            all_avg_player1_probs.append(avg_p1_probs)
-            all_avg_player2_probs.append(avg_p2_probs)
+        avg_p1_probs, avg_p2_probs = run_experiments_for_starting_point(
+            start_point=start_point,
+            q_learning=q_learning,
+            matrix_game=matrix_game,
+            episodes=episodes,
+            alpha=alpha,
+            gamma=gamma,
+            runs_per_start_point=runs_per_start_point,
+            use_leniency=use_leniency,
+            n_processes=n_processes,
+            print_progress=print_progress,
+            current_starting_point=current_starting_point,
+            total_starting_points=total_starting_points
+        )
+        
+        all_avg_player1_probs.append(avg_p1_probs)
+        all_avg_player2_probs.append(avg_p2_probs)
     
     return all_avg_player1_probs, all_avg_player2_probs
 
