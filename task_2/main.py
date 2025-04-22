@@ -161,6 +161,7 @@ def run_game_comparison_experiment(game_classes, q_learning_algorithm, n_process
             gamma=gamma,
             runs_per_start_point=runs_per_start_point,
             use_leniency=leniency_aux,
+            print_progress=True,
             n_processes=n_processes
         )
         
@@ -303,7 +304,7 @@ if __name__ == "__main__":
     print(f"Using {use_cores} cores for parallel processing")
     
     # Run the new Matching Pennies experiment with cardinal starting points
-    run_matching_pennies_experiment(n_processes=use_cores)
+    # run_matching_pennies_experiment(n_processes=use_cores)
     
     
     # Example 1: Compare different temperatures for Boltzmann Q-learning
@@ -311,25 +312,25 @@ if __name__ == "__main__":
     # run_temperature_comparison_experiment(temperatures, n_processes=use_cores)
     
     # Example 2: Compare different games with a single learning algorithm
-    # games = [PrisonnersDilemma, StagHunt, MatchingPennies]
-    # 
-    # boltzmann_q = BoltzmannQLearning(
-    #     temperature=1.0,
-    #     temperature_min=0.01,
-    #     temperature_decay=0.999,
-    #     alpha=0.01
-    # )
-    # 
-    # lenient_boltzmann_q = BoltzmannQLearning(
-    #     temperature=1.0,
-    #     temperature_min=0.01,
-    #     temperature_decay=0.999,
-    #     alpha=0.01,
-    #     lenient=True,
-    #     kappa=5
-    # )
-    # 
-    # run_game_comparison_experiment(games, lenient_boltzmann_q, n_processes=use_cores)
+    games = [PrisonnersDilemma, StagHunt, MatchingPennies]
+    
+    boltzmann_q = BoltzmannQLearning(
+        temperature=1.0,
+        temperature_min=0.01,
+        temperature_decay=0.999,
+        alpha=0.01
+    )
+    
+    lenient_boltzmann_q = BoltzmannQLearning(
+        temperature=1.0,
+        temperature_min=0.01,
+        temperature_decay=0.999,
+        alpha=0.01,
+        lenient=True,
+        kappa=5
+    )
+    
+    run_game_comparison_experiment(games, lenient_boltzmann_q, n_processes=use_cores)
     
     # Example 3: Compare different learning algorithms on the same game
     # boltzmann_q = BoltzmannQLearning(

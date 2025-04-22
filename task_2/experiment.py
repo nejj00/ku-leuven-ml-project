@@ -110,18 +110,7 @@ def run_single_experiment_wrapper(run_idx: int, params: dict) -> Tuple[List[floa
     # Create a fresh copy of the learning algorithm to ensure independent runs
     q_learning_copy = params['q_learning'].copy()
     
-    # Check if we should print progress updates
-    print_progress = params.get('print_progress', False)
-    report_interval = params.get('report_interval', 10)
-    
-    # Print progress if appropriate (only every Nth run to avoid console spam)
-    if print_progress and run_idx % report_interval == 0:
-        total_runs = params.get('total_runs', 0)
-        current_starting_point = params.get('current_starting_point', 0)
-        total_starting_points = params.get('total_starting_points', 0)
-        print(f"Starting point {current_starting_point}/{total_starting_points}: "
-              f"Running simulation {run_idx+1}/{total_runs}")
-    
+    # No progress printing in worker processes to avoid out-of-order messages
     return run_single_experiment(
         q_learning=q_learning_copy,
         episodes=params['episodes'],
@@ -185,33 +174,51 @@ def run_experiments_for_starting_point(
         'gamma': gamma,
         'start_q1': start_q1,
         'start_q2': start_q2,
-        'use_leniency': use_leniency,
-        'print_progress': print_progress,
-        'report_interval': 100,  # Only report every 100th run to minimize console output
-        'total_runs': runs_per_start_point,
-        'current_starting_point': current_starting_point,
-        'total_starting_points': total_starting_points
+        'use_leniency': use_leniency
     }
+    
+    # Report from main thread before starting parallel processing
+    if print_progress:
+        print(f"Starting {runs_per_start_point} runs for starting point {current_starting_point}/{total_starting_points}")
     
     # Run multiple experiments for this starting point in parallel
     if n_processes != 1:  # Allow for disabling parallel processing
         with mp.Pool(processes=n_processes) as pool:
-            # Map each run to a process
-            results = pool.map(
-                partial(run_single_experiment_wrapper, params=params),
-                range(runs_per_start_point)
-            )
-        
-        # Unpack results
-        runs_player1_probs, runs_player2_probs = zip(*results)
+            # Report progress updates directly from the main thread
+            report_interval = max(1, runs_per_start_point // 10)  # Report ~10 times during processing
+            
+            # Setup async processing to allow main thread to report progress
+            async_results = []
+            for run_idx in range(runs_per_start_point):
+                async_result = pool.apply_async(run_single_experiment_wrapper, (run_idx, params))
+                async_results.append(async_result)
+            
+            # Collect results as they complete
+            results = []
+            for i, async_result in enumerate(async_results):
+                result = async_result.get()  # This will block until the result is ready
+                results.append(result)
+                
+                # Periodically report completion progress from the main thread
+                if print_progress and (i + 1) % report_interval == 0:
+                    print(f"Completed {i + 1}/{runs_per_start_point} runs for starting point {current_starting_point}/{total_starting_points}")
+            
+            # Unpack results
+            runs_player1_probs, runs_player2_probs = zip(*results)
     else:
         # Sequential processing (fallback)
         runs_player1_probs = []
         runs_player2_probs = []
+        report_interval = max(1, runs_per_start_point // 10)  # Report ~10 times during processing
+        
         for run_idx in range(runs_per_start_point):
             p1_probs, p2_probs = run_single_experiment_wrapper(run_idx, params)
             runs_player1_probs.append(p1_probs)
             runs_player2_probs.append(p2_probs)
+            
+            # Report progress from the main thread
+            if print_progress and (run_idx + 1) % report_interval == 0:
+                print(f"Completed {run_idx + 1}/{runs_per_start_point} runs for starting point {current_starting_point}/{total_starting_points}")
     
     # Calculate the average trajectory for this starting point
     avg_p1_probs = np.mean(runs_player1_probs, axis=0)
