@@ -89,6 +89,7 @@ class EpsilonGreedyQLearning(QLearning):
         self.min_epsilon = min_epsilon
         self.epsilon_decay = epsilon_decay
         self.alpha = alpha
+        self.lenient = False
 
     def choose_action(self, q_table):
         """

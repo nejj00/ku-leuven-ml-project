@@ -250,7 +250,7 @@ def plot_replicator_dynamics(game, q_learning, ax, use_leniency=False):
     ax.set_aspect('equal')
 
 
-def plot_combined_visualization(all_avg_player1_probs, all_avg_player2_probs, game, q_learning, ax, title=None, use_leniency=False):
+def plot_combined_visualization(all_avg_player1_probs, all_avg_player2_probs, game, q_learning, ax, title=None, use_leniency=False, plot_rd=True):
     """
     Create a combined plot of trajectories and replicator dynamics.
     
@@ -266,7 +266,8 @@ def plot_combined_visualization(all_avg_player1_probs, all_avg_player2_probs, ga
     plot_avg_trajectories(all_avg_player1_probs, all_avg_player2_probs, game, ax)
     
     # Overlay replicator dynamics
-    plot_replicator_dynamics(game, q_learning, ax, use_leniency=use_leniency)
+    if plot_rd:
+        plot_replicator_dynamics(game, q_learning, ax, use_leniency=use_leniency)
     
     # Set title if provided
     if title:
