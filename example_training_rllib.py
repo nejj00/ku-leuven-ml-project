@@ -43,6 +43,41 @@ class CustomWrapper(BaseWrapper):
         obs = super().observe(agent)
         flat_obs = obs.flatten()
         return flat_obs
+    
+    def _extract_features(self, obs_matrix: np.ndarray) -> list:
+        """Extract custom features from the raw obs matrix."""
+        current_agent = obs_matrix[0]
+        others = obs_matrix[1:]
+
+        # Example features
+        own_x, own_y = current_agent[1], current_agent[2]
+        heading = current_agent[3:5]
+
+        # Count zombies
+        zombie_rows = obs_matrix[obs_matrix[:, 0] > 0.0]  # Filter non-empty rows
+        num_zombies = np.sum((zombie_rows[:, -6:] == [1, 0, 0, 0, 0, 0]).all(axis=1))
+
+        # Nearest zombie distance
+        dists = [
+            row[0] for row in zombie_rows
+            if (row[-6:] == [1, 0, 0, 0, 0, 0]).all()
+        ]
+        nearest_zombie_dist = min(dists) if dists else 1.0
+
+        # Average relative position of zombies
+        zombie_rels = [
+            row[1:3] for row in zombie_rows
+            if (row[-6:] == [1, 0, 0, 0, 0, 0]).all()
+        ]
+        avg_zombie_rel = np.mean(zombie_rels, axis=0) if zombie_rels else [0.0, 0.0]
+
+        # Final feature vector
+        features = [
+            own_x, own_y, *heading,
+            num_zombies, nearest_zombie_dist, *avg_zombie_rel
+            # Add more engineered features here...
+        ]
+        return features
 
 
 class CustomPredictFunction(Callable):
