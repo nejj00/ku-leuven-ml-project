@@ -25,59 +25,99 @@ from ray.rllib.examples.rl_modules.classes.random_rlm import RandomRLModule
 from ray.tune.registry import register_env
 import numpy as np
 import torch
-
+from ray.rllib.algorithms.dqn import DQNConfig
+from ray.rllib.algorithms.dqn.torch.default_dqn_torch_rl_module import DefaultDQNTorchRLModule 
 from utils import create_environment
-
-
-
 
 
 class CustomWrapper(BaseWrapper):
     # This is an example of a custom wrapper that flattens the symbolic vector state of the environment
     # Wrapper are useful to inject state pre-processing or feature that does not need to be learned by the agent
-
+    def __init__(self, env):
+        super().__init__(env)
+        self.extra_features_dim = 2  # We'll define 4 features
+    
     def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
-        return  spaces.flatten_space(super().observation_space(agent))
+        
+        # what = spaces.flatten_space(super().observation_space(agent))
+
+        # return  what
+
+        base = super().observation_space(agent)
+        shape = base.shape  # e.g., (N+1, 5)
+        flat_obs_size = np.prod(shape)
+        return spaces.Box(
+            low=-1.0, high=1.0,
+            shape=(flat_obs_size + self.extra_features_dim,),
+            dtype=np.float64
+        )
+
 
     def observe(self, agent: AgentID) -> ObsType | None:
+        # obs = super().observe(agent)
+        # flat_obs = obs.flatten()
+        # return flat_obs
+        
         obs = super().observe(agent)
         flat_obs = obs.flatten()
-        return flat_obs
+
+        # ==== Custom Features ====
+        extra_feats = self._nearest_zombie_direction(obs)
+        return np.concatenate([flat_obs, extra_feats])
     
-    def _extract_features(self, obs_matrix: np.ndarray) -> list:
-        """Extract custom features from the raw obs matrix."""
-        current_agent = obs_matrix[0]
-        others = obs_matrix[1:]
+    def _extract_features(self, obs_matrix):
+        # obs_matrix shape: (N+1, 5) or (N+1, 11)
+        # Assume zombie rows are at the end
+        num_rows = obs_matrix.shape[0]
+        agent_row = obs_matrix[0]
+        entity_rows = obs_matrix[1:]
 
-        # Example features
-        own_x, own_y = current_agent[1], current_agent[2]
-        heading = current_agent[3:5]
+        # Distance is first column
+        dists = entity_rows[:, 0]
+        nonzero_dists = dists[dists > 0]
 
-        # Count zombies
-        zombie_rows = obs_matrix[obs_matrix[:, 0] > 0.0]  # Filter non-empty rows
-        num_zombies = np.sum((zombie_rows[:, -6:] == [1, 0, 0, 0, 0, 0]).all(axis=1))
+        # Typemasks not available? Then guess zombies from angle = [0, 1]
+        # We'll assume last M rows are zombies
+        num_zombies = np.sum((entity_rows[:, 4] == 1) & (entity_rows[:, 3] == 0))  # angle_y=1, angle_x=0 (crude)
 
-        # Nearest zombie distance
-        dists = [
-            row[0] for row in zombie_rows
-            if (row[-6:] == [1, 0, 0, 0, 0, 0]).all()
-        ]
-        nearest_zombie_dist = min(dists) if dists else 1.0
+        # Nearest zombie dist
+        nearest_zombie_dist = np.min(nonzero_dists) if len(nonzero_dists) > 0 else 1.0
 
-        # Average relative position of zombies
-        zombie_rels = [
-            row[1:3] for row in zombie_rows
-            if (row[-6:] == [1, 0, 0, 0, 0, 0]).all()
-        ]
-        avg_zombie_rel = np.mean(zombie_rels, axis=0) if zombie_rels else [0.0, 0.0]
+        # Average direction to zombies
+        zombie_rows = entity_rows[(entity_rows[:, 4] == 1) & (entity_rows[:, 3] == 0)]
+        if len(zombie_rows) > 0:
+            avg_dx = np.mean(zombie_rows[:, 1])
+            avg_dy = np.mean(zombie_rows[:, 2])
+        else:
+            avg_dx = 0.0
+            avg_dy = 0.0
 
-        # Final feature vector
-        features = [
-            own_x, own_y, *heading,
-            num_zombies, nearest_zombie_dist, *avg_zombie_rel
-            # Add more engineered features here...
-        ]
-        return features
+        return np.array([
+            num_zombies / 4.0,  # Normalize by max zombies
+            nearest_zombie_dist,
+            avg_dx,
+            avg_dy
+        ], dtype=np.float64)
+    
+    def _nearest_zombie_direction(self, obs_matrix):
+        # Assume the observation has shape (N+1, 5) or (N+1, 11)
+        agent_row = obs_matrix[0]
+        entity_rows = obs_matrix[1:]
+
+        zombie_rows = entity_rows[(entity_rows[:, 4] == 1) & (entity_rows[:, 3] == 0)]
+
+        if len(zombie_rows) == 0:
+            return np.array([0.0, 0.0], dtype=np.float32)
+
+        # Use distance column to find nearest zombie
+        dists = zombie_rows[:, 0]
+        idx = np.argmin(dists)
+        nearest = zombie_rows[idx]
+
+        dx = nearest[1]
+        dy = nearest[2]
+        norm = np.linalg.norm([dx, dy]) + 1e-8
+        return np.array([dx / norm, dy / norm], dtype=np.float64)
 
 
 class CustomPredictFunction(Callable):
@@ -123,21 +163,48 @@ def algo_config(id_env, policies, policies_to_train):
         .rl_module(
             rl_module_spec=MultiRLModuleSpec(
                 rl_module_specs={
-                    x: RLModuleSpec(module_class=PPOTorchRLModule, model_config={"fcnet_hiddens": [64, 64]})
+                    x: RLModuleSpec(module_class=PPOTorchRLModule, model_config={"fcnet_hiddens": [128, 128]})
                     if x in policies_to_train
                     else
                     RLModuleSpec(module_class=RandomRLModule)
                     for x in policies},
             ))
         .training(
+            train_batch_size=4000,
+            lr=1e-4,
+            gamma=0.99,
+            num_sgd_iter=10,
+            grad_clip=0.5,
+            grad_clip_by="norm",
+        )
+        .debugging(log_level="ERROR")
+    )
+
+    return config
+
+
+def algo_config_dqn(id_env, policies, policies_to_train):
+    config = (
+        DQNConfig()
+        .api_stack(
+            enable_rl_module_and_learner=True,
+            enable_env_runner_and_connector_v2=True,
+        )
+        .environment(env=id_env, disable_env_checking=True)
+        .env_runners(num_env_runners=1)
+        .multi_agent(
+            policies={x for x in policies},
+            policy_mapping_fn=lambda agent_id, *args, **kwargs: agent_id,
+            policies_to_train=policies_to_train,
+        )
+        .training(
             train_batch_size=512,
             lr=1e-4,
             gamma=0.99,
         )
         .debugging(log_level="ERROR")
-
     )
-
+    
     return config
 
 
@@ -165,7 +232,7 @@ def training(env, checkpoint_path, max_iterations = 500):
         result.pop("config")
         if "env_runners" in result and "agent_episode_returns_mean" in result["env_runners"]:
             print(i, result["env_runners"]["agent_episode_returns_mean"])
-            if result["env_runners"]["agent_episode_returns_mean"]["archer_0"] > 5: # Or any early stopping criterion
+            if result["env_runners"]["agent_episode_returns_mean"]["archer_0"] > 50: # Or any early stopping criterion
                 break
         if i % 5 == 0:
             save_result = algo.save(checkpoint_path)
