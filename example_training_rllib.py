@@ -222,7 +222,7 @@ def algo_config(id_env, policies, policies_to_train):
             ))
         .training(
             train_batch_size=4000,
-            lr=1e-3,
+            lr=1e-4,
             gamma=0.99,
             num_sgd_iter=10,
             grad_clip=0.5,
