@@ -15,7 +15,7 @@ from experiment import run_multiple_experiments, get_default_starting_points
 from visualization import plot_combined_visualization
 
 
-def get_cardinal_starting_points():
+def get_cardinal_starting_points(distance_scaling=2):
     """
     Return starting points at the cardinal and intermediate directions.
     Creates 8 points evenly spaced around the probability space.
@@ -23,7 +23,6 @@ def get_cardinal_starting_points():
     Returns:
         List of (player1_q_values, player2_q_values) pairs
     """
-    distance_scaling = 2
     return [
         ([0, 0], [distance_scaling, 0]),                  # North
         ([distance_scaling, 0], [0, 0]),                  # East
@@ -161,7 +160,7 @@ if __name__ == "__main__":
     use_cores = max(1, num_cores - 1)
     print(f"Using {use_cores} cores for parallel processing")
     
-    # # ------ Epsilon-Greedy in Matching Pennies ------ #TODO
+    # # ------ Epsilon-Greedy in Matching Pennies ------
     # print("\nRunning Experiment: Epsilon-Greedy Q-learning in Matching Pennies")
     # # Initialize the Matching Pennies game
     # game = MatchingPennies()
@@ -169,15 +168,14 @@ if __name__ == "__main__":
     # q_learning = EpsilonGreedyQLearning(
     #     epsilon=0.2,
     #     min_epsilon=0.2,
-    #     epsilon_decay=1,
-    #     alpha=0.006
+    #     epsilon_decay=1
     # )
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
     #     episodes=1000,
-    #     runs_per_start_point=1,
-    #     alpha=0.006,
+    #     runs_per_start_point=5000,
+    #     alpha=0.01,
     #     gamma=0,
     #     plot_rd=False,
     #     n_processes=use_cores,
@@ -207,7 +205,7 @@ if __name__ == "__main__":
     #     starting_points=get_intermediate_cardinal()
     # )
     
-    # # ------ Epsilon-Greedy in Stag Hunt ------ #TODO
+    # # ------ Epsilon-Greedy in Stag Hunt ------
     # print("\nRunning Experiment: Epsilon-Greedy Q-learning in Stag Hunt")
     # # Initialize the Stag Hunt game
     # game = StagHunt()
@@ -227,7 +225,7 @@ if __name__ == "__main__":
     #     plot_rd=False,
     #     n_processes=use_cores,
     #     title="Epsilon-Greedy Q-learning in Stag Hunt",
-    #     starting_points=get_intermediate_cardinal()
+    #     starting_points=get_cardinal_starting_points()
     # )
     
     # # ------ Boltzmann Q-learning in Matching Pennies (converging to center) ------
@@ -238,13 +236,13 @@ if __name__ == "__main__":
     # q_learning = BoltzmannQLearning(
     #     temperature=1,
     #     temperature_min=0,
-    #     temperature_decay=0.998
+    #     temperature_decay=0.995
     # )
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
     #     episodes=1750,
-    #     runs_per_start_point=20000,
+    #     runs_per_start_point=2000,
     #     alpha=0.006,
     #     gamma=0,
     #     plot_rd=True,
@@ -274,33 +272,10 @@ if __name__ == "__main__":
     #     title="Boltzmann Q-learning in Matching Pennies (Circular Orbits)"
     # )
     
-    # # ------ Boltzmann in Stag Hunt ------ #TODO
+    # # ------ Boltzmann in Stag Hunt ------
     # print("\nRunning Experiment: Boltzmann Q-learning in Stag Hunt")
     # # Initialize the Stag Hunt game
     # game = StagHunt()
-    # # Initialize Boltzmann Q-learning
-    # q_learning = BoltzmannQLearning(
-    #     epsilon=0.2,
-    #     min_epsilon=0.2,
-    #     epsilon_decay=1,
-    # )
-    # run_experiment_setup(
-    #     game=game,
-    #     q_learning=q_learning,
-    #     episodes=2000,
-    #     runs_per_start_point=2000,
-    #     alpha=0.01,
-    #     gamma=0,
-    #     plot_rd=True,
-    #     n_processes=use_cores,
-    #     title="Boltzmann Q-learning in Stag Hunt",
-    #     starting_points=get_intermediate_cardinal()
-    # )
-    
-    # # ------ Boltzmann in Prisonners Dilemma ------ #TODO
-    # print("\nRunning Experiment: Boltzmann Q-learning in Prisonners Dilemma")
-    # # Initialize the Prisonners Dilemma game
-    # game = PrisonnersDilemma()
     # # Initialize Boltzmann Q-learning
     # q_learning = BoltzmannQLearning(
     #     temperature=1,
@@ -310,17 +285,40 @@ if __name__ == "__main__":
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
-    #     episodes=2000,
-    #     runs_per_start_point=2000,
-    #     alpha=0.01,
+    #     episodes=10000,
+    #     runs_per_start_point=200,
+    #     alpha=0.005,
+    #     gamma=0,
+    #     plot_rd=True,
+    #     n_processes=use_cores,
+    #     title="Boltzmann Q-learning in Stag Hunt",
+    #     starting_points=get_cardinal_starting_points() + get_cardinal_starting_points(distance_scaling=1)
+    # )
+    
+    # # ------ Boltzmann in Prisonners Dilemma ------
+    # print("\nRunning Experiment: Boltzmann Q-learning in Prisonners Dilemma")
+    # # Initialize the Prisonners Dilemma game
+    # game = PrisonnersDilemma()
+    # # Initialize Boltzmann Q-learning
+    # q_learning = BoltzmannQLearning(
+    #     temperature=1,
+    #     temperature_min=0,
+    #     temperature_decay=0.9995
+    # )
+    # run_experiment_setup(
+    #     game=game,
+    #     q_learning=q_learning,
+    #     episodes=8000,
+    #     runs_per_start_point=500,
+    #     alpha=0.00165,
     #     gamma=0,
     #     plot_rd=True,
     #     n_processes=use_cores,
     #     title="Boltzmann Q-learning in Prisonners Dilemma",
-    #     starting_points=get_intermediate_cardinal()
+    #     starting_points=get_cardinal_starting_points(1)
     # )
     
-    # # ------ Boltzmann Q-learning with leniency in Stag Hunt ------ #TODO
+    # # ------ Boltzmann Q-learning with leniency in Stag Hunt ------
     # print("\nRunning Experiment: Boltzmann Q-learning with leniency in Stag Hunt")
     # # Initialize the Stag Hunt game
     # game = StagHunt()
@@ -328,19 +326,138 @@ if __name__ == "__main__":
     # q_learning = BoltzmannQLearning(
     #     temperature=1,
     #     temperature_min=0,
-    #     temperature_decay=0.998,
+    #     temperature_decay=0.9982,
+    #     kappa=4
+    # )
+    # run_experiment_setup(
+    #     game=game,
+    #     q_learning=q_learning,
+    #     episodes=4000,
+    #     runs_per_start_point=200,
+    #     alpha=0.006,
+    #     gamma=0,
     #     use_leniency=True,
-    #     kappa=5
+    #     plot_rd=True,
+    #     n_processes=use_cores,
+    #     title="Boltzmann Q-learning with leniency in Stag Hunt",
+    #     starting_points=get_cardinal_starting_points()
+    # )
+    
+    # # ------ Boltzmann Q-learning with leniency in Prisoner's Dilemma ------
+    # print("\nRunning Experiment: Boltzmann Q-learning with leniency in Prisoner's Dilemma")
+    # # Initialize the Prisoner's Dilemma") game
+    # game = PrisonnersDilemma()
+    # # Initialize Boltzmann Q-learning with leniency
+    # q_learning = BoltzmannQLearning(
+    #     temperature=1,
+    #     temperature_min=0,
+    #     temperature_decay=0.999,
+    #     kappa=4
+    # )
+    # run_experiment_setup(
+    #     game=game,
+    #     q_learning=q_learning,
+    #     episodes=4000,
+    #     runs_per_start_point=1000,
+    #     alpha=0.005,
+    #     gamma=0,
+    #     use_leniency=True,
+    #     plot_rd=True,
+    #     n_processes=use_cores,
+    #     title="Boltzmann Q-learning with leniency in Prisoner's Dilemma",
+    #     starting_points=get_cardinal_starting_points(1)
+    # )
+    
+    # # ------ Boltzmann Q-learning with leniency in Matching Pennies (converging to center) ------
+    # print("\nRunning Experiment: Boltzmann Q-learning with leniency in Matching Pennies (converging to center)")
+    # # Initialize the Matching Pennies game
+    # game = MatchingPennies()
+    # # Initialize Boltzmann Q-learning with leniency
+    # q_learning = BoltzmannQLearning(
+    #     temperature=1,
+    #     temperature_min=0,
+    #     temperature_decay=0.995
+    # )
+    # run_experiment_setup(
+    #     game=game,
+    #     q_learning=q_learning,
+    #     episodes=1750,
+    #     runs_per_start_point=2000,
+    #     alpha=0.006,
+    #     use_leniency=True,
+    #     gamma=0,
+    #     plot_rd=True,
+    #     n_processes=use_cores,
+    #     title="Boltzmann Q-learning with leniency in Matching Pennies (Converging to Center)"
+    # )
+    
+    # # ------ Boltzmann in Prisonners Dilemma with too heavily biased starting points------
+    # print("\nRunning Experiment: Boltzmann Q-learning in Prisonners Dilemma with too heavily biased starting points")
+    # # Initialize the Prisonners Dilemma game
+    # game = PrisonnersDilemma()
+    # # Initialize Boltzmann Q-learning
+    # q_learning = BoltzmannQLearning(
+    #     temperature=1,
+    #     temperature_min=0,
+    #     temperature_decay=0.99
     # )
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
     #     episodes=2000,
-    #     runs_per_start_point=2000,
-    #     alpha=0.01,
+    #     runs_per_start_point=200,
+    #     alpha=0.00165,
     #     gamma=0,
     #     plot_rd=True,
     #     n_processes=use_cores,
-    #     title="Boltzmann Q-learning with leniency in Stag Hunt",
-    #     starting_points=get_intermediate_cardinal()
+    #     title="Boltzmann Q-learning in Prisonners Dilemma with too heavily biased starting points",
+    #     starting_points=get_cardinal_starting_points(3)
+    # )
+    
+    # # ------ Boltzmann in Stag Hunt  with bad temperature decay------
+    # print("\nRunning Experiment: Boltzmann Q-learning in Stag Hunt with bad temperature decay")
+    # # Initialize the Stag Hunt game
+    # game = StagHunt()
+    # # Initialize Boltzmann Q-learning
+    # q_learning = BoltzmannQLearning(
+    #     temperature=1,
+    #     temperature_min=0,
+    #     temperature_decay=0.9999
+    # )
+    # run_experiment_setup(
+    #     game=game,
+    #     q_learning=q_learning,
+    #     episodes=10000,
+    #     runs_per_start_point=200,
+    #     alpha=0.005,
+    #     gamma=0,
+    #     plot_rd=True,
+    #     n_processes=use_cores,
+    #     title="Boltzmann Q-learning in Stag Hunt with bad temperature decay",
+    #     starting_points=get_cardinal_starting_points(distance_scaling=1)
+    # )
+
+    # # ------ Boltzmann Q-learning with a lot of leniency in Stag Hunt ------
+    # print("\nRunning Experiment: Boltzmann Q-learning with a lot of leniency in Stag Hunt")
+    # # Initialize the Stag Hunt game
+    # game = StagHunt()
+    # # Initialize Boltzmann Q-learning with leniency
+    # q_learning = BoltzmannQLearning(
+    #     temperature=1,
+    #     temperature_min=0,
+    #     temperature_decay=0.9982,
+    #     kappa=20
+    # )
+    # run_experiment_setup(
+    #     game=game,
+    #     q_learning=q_learning,
+    #     episodes=4000,
+    #     runs_per_start_point=200,
+    #     alpha=0.006,
+    #     gamma=0,
+    #     use_leniency=True,
+    #     plot_rd=True,
+    #     n_processes=use_cores,
+    #     title="Boltzmann Q-learning with a lot of leniency in Stag Hunt",
+    #     starting_points=get_cardinal_starting_points(3)
     # )

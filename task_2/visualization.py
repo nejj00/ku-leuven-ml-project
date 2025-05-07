@@ -41,6 +41,11 @@ def replicator_dynamics_equation_lenient(x, game, alpha=1.0, tau=0.005, kappa=5)
     p1_C = x[0]
     p2_C = x[1]
 
+    # Avoid numerical issues with probabilities very close to 0 or 1
+    epsilon = 1e-10
+    p1_C = np.clip(p1_C, epsilon, 1 - epsilon)
+    p2_C = np.clip(p2_C, epsilon, 1 - epsilon)
+    
     x1 = np.array([p1_C, 1 - p1_C])
     x2 = np.array([p2_C, 1 - p2_C])
 
@@ -55,9 +60,16 @@ def replicator_dynamics_equation_lenient(x, game, alpha=1.0, tau=0.005, kappa=5)
     avg_f1 = np.dot(x1, f1_C)
     avg_f2 = np.dot(x2, f2_C)
 
+    # Ensure tau is not zero to avoid division by zero
+    safe_tau = max(tau, epsilon)
+    
+    # Safe logarithm calculation to avoid log(0)
+    safe_log_x1 = np.log(np.clip(x1, epsilon, 1.0))
+    safe_log_x2 = np.log(np.clip(x2, epsilon, 1.0))
+
     # Replicator dynamics with entropy correction (Boltzmann-like)
-    dot_x1_C = (alpha * x1[0] / tau) * (f1_C[0] - avg_f1) - alpha * x1[0] * (np.log(x1[0]) - np.dot(x1, np.log(x1)))
-    dot_x2_C = (alpha * x2[0] / tau) * (f2_C[0] - avg_f2) - alpha * x2[0] * (np.log(x2[0]) - np.dot(x2, np.log(x2)))
+    dot_x1_C = (alpha * x1[0] / safe_tau) * (f1_C[0] - avg_f1) - alpha * x1[0] * (safe_log_x1[0] - np.dot(x1, safe_log_x1))
+    dot_x2_C = (alpha * x2[0] / safe_tau) * (f2_C[0] - avg_f2) - alpha * x2[0] * (safe_log_x2[0] - np.dot(x2, safe_log_x2))
 
     return [dot_x1_C, dot_x2_C]
 
