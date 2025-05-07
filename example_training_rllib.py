@@ -28,6 +28,7 @@ import torch
 from ray.rllib.algorithms.dqn import DQNConfig
 from ray.rllib.algorithms.dqn.torch.default_dqn_torch_rl_module import DefaultDQNTorchRLModule 
 from utils import create_environment
+import matplotlib.pyplot as plt
 
 
 class CustomWrapper(BaseWrapper):
@@ -35,7 +36,7 @@ class CustomWrapper(BaseWrapper):
     # Wrapper are useful to inject state pre-processing or feature that does not need to be learned by the agent
     def __init__(self, env):
         super().__init__(env)
-        self.extra_features_dim = 2  # We'll define 4 features
+        self.extra_features_dim = 8  # We'll define 4 features
     
     def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
         
@@ -62,7 +63,7 @@ class CustomWrapper(BaseWrapper):
         flat_obs = obs.flatten()
 
         # ==== Custom Features ====
-        extra_feats = self._nearest_zombie_direction(obs)
+        extra_feats = self._compute_features(obs)
         return np.concatenate([flat_obs, extra_feats])
     
     def _extract_features(self, obs_matrix):
@@ -118,6 +119,55 @@ class CustomWrapper(BaseWrapper):
         dy = nearest[2]
         norm = np.linalg.norm([dx, dy]) + 1e-8
         return np.array([dx / norm, dy / norm], dtype=np.float64)
+    
+    def _compute_features(self, obs_matrix):
+        agent_row = obs_matrix[0]
+        entity_rows = obs_matrix[1:]
+
+        # === Heading vector ===
+        heading_x, heading_y = agent_row[3], agent_row[4]
+
+        # === Find zombies ===
+        zombies = entity_rows[(entity_rows[:, 3] == 0.0) & (entity_rows[:, 4] == 1.0)]
+        num_zombies = len(zombies)
+
+        if num_zombies == 0:
+            avg_dist = 1.0
+            nearest_dist = 1.0
+            avg_dx, avg_dy = 0.0, 0.0
+            nearest_dx, nearest_dy = 0.0, 0.0
+            dot_heading_enemy_dir = 0.0
+        else:
+            dists = zombies[:, 0]
+            dxs = zombies[:, 1]
+            dys = zombies[:, 2]
+
+            avg_dist = np.mean(dists)
+            nearest_idx = np.argmin(dists)
+            nearest_dist = dists[nearest_idx]
+            nearest_dx, nearest_dy = dxs[nearest_idx], dys[nearest_idx]
+
+            avg_dx = np.mean(dxs)
+            avg_dy = np.mean(dys)
+
+            avg_dir_norm = np.linalg.norm([avg_dx, avg_dy]) + 1e-8
+            avg_dir_unit = np.array([avg_dx / avg_dir_norm, avg_dy / avg_dir_norm])
+            dot_heading_enemy_dir = heading_x * avg_dir_unit[0] + heading_y * avg_dir_unit[1]
+
+        # Normalize nearest zombie direction
+        norm = np.linalg.norm([nearest_dx, nearest_dy]) + 1e-8
+        nearest_dxdy = np.array([nearest_dx / norm, nearest_dy / norm])
+
+        features = np.array([
+            heading_x, heading_y,
+            num_zombies / 4.0,  # Normalize by max zombies (assumed max = 5)
+            avg_dist,
+            nearest_dist,
+            *nearest_dxdy,
+            dot_heading_enemy_dir
+        ], dtype=np.float64)
+
+        return features
 
 
 class CustomPredictFunction(Callable):
@@ -154,7 +204,8 @@ def algo_config(id_env, policies, policies_to_train):
             enable_env_runner_and_connector_v2=True,
         )
         .environment(env=id_env, disable_env_checking=True)
-        .env_runners(num_env_runners=1)
+        .env_runners(num_env_runners=16)
+        .resources(num_gpus=1,)
         .multi_agent(
             policies={x for x in policies},
             policy_mapping_fn=lambda agent_id, *args, **kwargs: agent_id,
@@ -171,7 +222,7 @@ def algo_config(id_env, policies, policies_to_train):
             ))
         .training(
             train_batch_size=4000,
-            lr=1e-4,
+            lr=1e-3,
             gamma=0.99,
             num_sgd_iter=10,
             grad_clip=0.5,
@@ -227,20 +278,47 @@ def training(env, checkpoint_path, max_iterations = 500):
 
     # Train the model
     algo = config.build()
+    mean_rewards = []
+    best_mean_reward = -np.inf
+    
     for i in range(max_iterations):
         result = algo.train()
         result.pop("config")
         if "env_runners" in result and "agent_episode_returns_mean" in result["env_runners"]:
+            # mean_reward = np.mean(list(result["env_runners"]["agent_episode_returns_mean"].values()))
+            # print(f"Iteration {i}: Mean Reward = {mean_reward:.2f}")
+            
             print(i, result["env_runners"]["agent_episode_returns_mean"])
-            if result["env_runners"]["agent_episode_returns_mean"]["archer_0"] > 50: # Or any early stopping criterion
+            
+            archer_0_reward = result["env_runners"]["agent_episode_returns_mean"]["archer_0"]
+            
+            if archer_0_reward > 50: # Or any early stopping criterion
                 break
-        if i % 5 == 0:
-            save_result = algo.save(checkpoint_path)
-            path_to_checkpoint = save_result.checkpoint.path
-            print(
-                "An Algorithm checkpoint has been created inside directory: "
-                f"'{path_to_checkpoint}'."
-            )
+            
+            mean_rewards.append(archer_0_reward)
+            
+            if archer_0_reward > best_mean_reward:
+                best_mean_reward = archer_0_reward
+                
+                save_result = algo.save(checkpoint_path)
+                path_to_checkpoint = save_result.checkpoint.path
+                print(
+                    "An Algorithm checkpoint has been created inside directory: "
+                    f"'{path_to_checkpoint}'."
+                )
+    
+    
+    # Plotting reward curve
+    plt.figure(figsize=(10, 5))
+    plt.plot(mean_rewards, label='Average Reward per Iteration')
+    plt.xlabel('Iteration')
+    plt.ylabel('Mean Episode Reward')
+    plt.title('Training Progress')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("training_progress.png")
+    plt.show()
 
 
 
@@ -255,4 +333,4 @@ if __name__ == "__main__":
 
     # Running training routine
     checkpoint_path = str(Path("results").resolve())
-    training(env, checkpoint_path, max_iterations = 500)
+    training(env, checkpoint_path, max_iterations = 200)
