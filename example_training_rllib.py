@@ -36,7 +36,7 @@ class CustomWrapper(BaseWrapper):
     # Wrapper are useful to inject state pre-processing or feature that does not need to be learned by the agent
     def __init__(self, env):
         super().__init__(env)
-        self.extra_features_dim = 8  # We'll define 4 features
+        self.extra_features_dim = 10  # We'll define 4 features
     
     def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
         
@@ -137,6 +137,7 @@ class CustomWrapper(BaseWrapper):
             avg_dx, avg_dy = 0.0, 0.0
             nearest_dx, nearest_dy = 0.0, 0.0
             dot_heading_enemy_dir = 0.0
+            nearest_end_dx, nearest_end_dy = 0.0, 0.0
         else:
             dists = zombies[:, 0]
             dxs = zombies[:, 1]
@@ -153,6 +154,9 @@ class CustomWrapper(BaseWrapper):
             avg_dir_norm = np.linalg.norm([avg_dx, avg_dy]) + 1e-8
             avg_dir_unit = np.array([avg_dx / avg_dir_norm, avg_dy / avg_dir_norm])
             dot_heading_enemy_dir = heading_x * avg_dir_unit[0] + heading_y * avg_dir_unit[1]
+            
+            nearest_end_idx = np.argmax(dys)
+            nearest_end_dx, nearest_end_dy = dxs[nearest_end_idx], dys[nearest_end_idx]
 
         # Normalize nearest zombie direction
         norm = np.linalg.norm([nearest_dx, nearest_dy]) + 1e-8
@@ -164,7 +168,8 @@ class CustomWrapper(BaseWrapper):
             avg_dist,
             nearest_dist,
             *nearest_dxdy,
-            dot_heading_enemy_dir
+            dot_heading_enemy_dir,
+            nearest_end_dx, nearest_end_dy
         ], dtype=np.float64)
 
         return features
@@ -214,7 +219,7 @@ def algo_config(id_env, policies, policies_to_train):
         .rl_module(
             rl_module_spec=MultiRLModuleSpec(
                 rl_module_specs={
-                    x: RLModuleSpec(module_class=PPOTorchRLModule, model_config={"fcnet_hiddens": [128, 128]})
+                    x: RLModuleSpec(module_class=PPOTorchRLModule, model_config={"fcnet_hiddens": [128, 128], "fcnet_activation": "relu"})
                     if x in policies_to_train
                     else
                     RLModuleSpec(module_class=RandomRLModule)
@@ -222,10 +227,10 @@ def algo_config(id_env, policies, policies_to_train):
             ))
         .training(
             train_batch_size=4000,
-            lr=1e-4,
+            lr=0.00005,
             gamma=0.99,
             num_sgd_iter=10,
-            grad_clip=0.5,
+            grad_clip=0.8,
             grad_clip_by="norm",
         )
         .debugging(log_level="ERROR")
