@@ -36,7 +36,7 @@ class CustomWrapper(BaseWrapper):
     # Wrapper are useful to inject state pre-processing or feature that does not need to be learned by the agent
     def __init__(self, env):
         super().__init__(env)
-        self.extra_features_dim = 10  # We'll define 4 features
+        self.extra_features_dim = 16  # Enhanced features dimension
     
     def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
         
@@ -138,16 +138,33 @@ class CustomWrapper(BaseWrapper):
             nearest_dx, nearest_dy = 0.0, 0.0
             dot_heading_enemy_dir = 0.0
             nearest_end_dx, nearest_end_dy = 0.0, 0.0
+            farthest_dist = 1.0
+            zombie_density = 0.0
+            threat_level = 0.0
+            second_nearest_dist = 1.0
         else:
             dists = zombies[:, 0]
             dxs = zombies[:, 1]
             dys = zombies[:, 2]
 
+            # Sort zombies by distance
+            sorted_indices = np.argsort(dists)
+            
+            # Average distance and direction
             avg_dist = np.mean(dists)
-            nearest_idx = np.argmin(dists)
+            
+            # Nearest zombie info
+            nearest_idx = sorted_indices[0]
             nearest_dist = dists[nearest_idx]
             nearest_dx, nearest_dy = dxs[nearest_idx], dys[nearest_idx]
-
+            
+            # Second nearest zombie (if available)
+            second_nearest_dist = dists[sorted_indices[1]] if len(sorted_indices) > 1 else 1.0
+            
+            # Farthest zombie
+            farthest_dist = np.max(dists)
+            
+            # Directional information
             avg_dx = np.mean(dxs)
             avg_dy = np.mean(dys)
 
@@ -155,21 +172,43 @@ class CustomWrapper(BaseWrapper):
             avg_dir_unit = np.array([avg_dx / avg_dir_norm, avg_dy / avg_dir_norm])
             dot_heading_enemy_dir = heading_x * avg_dir_unit[0] + heading_y * avg_dir_unit[1]
             
+            # Farthest zombie in a particular direction
             nearest_end_idx = np.argmax(dys)
             nearest_end_dx, nearest_end_dy = dxs[nearest_end_idx], dys[nearest_end_idx]
+            
+            # Calculate zombie density (more zombies close together = higher density)
+            zombie_density = num_zombies / (np.sum(dists) + 1e-8) 
+            
+            # Threat level (more zombies and closer = higher threat)
+            threat_level = num_zombies * (1 - np.min([1.0, nearest_dist]))
 
         # Normalize nearest zombie direction
         norm = np.linalg.norm([nearest_dx, nearest_dy]) + 1e-8
         nearest_dxdy = np.array([nearest_dx / norm, nearest_dy / norm])
+        
+        # Calculate angle between heading and nearest zombie
+        heading_vec = np.array([heading_x, heading_y])
+        heading_norm = np.linalg.norm(heading_vec) + 1e-8
+        nearest_vec = np.array([nearest_dx, nearest_dy])
+        angle_cos = np.dot(heading_vec, nearest_vec) / (heading_norm * norm)
+        
+        # Check if zombie is behind archer
+        zombie_behind = 1.0 if angle_cos < -0.5 else 0.0
 
         features = np.array([
             heading_x, heading_y,
-            num_zombies / 4.0,  # Normalize by max zombies (assumed max = 5)
+            num_zombies / 4.0,  # Normalize by max zombies
             avg_dist,
             nearest_dist,
             *nearest_dxdy,
             dot_heading_enemy_dir,
-            nearest_end_dx, nearest_end_dy
+            nearest_end_dx, nearest_end_dy,
+            farthest_dist, 
+            zombie_density,
+            threat_level,
+            angle_cos,
+            zombie_behind,
+            second_nearest_dist
         ], dtype=np.float64)
 
         return features
@@ -219,19 +258,30 @@ def algo_config(id_env, policies, policies_to_train):
         .rl_module(
             rl_module_spec=MultiRLModuleSpec(
                 rl_module_specs={
-                    x: RLModuleSpec(module_class=PPOTorchRLModule, model_config={"fcnet_hiddens": [128, 128], "fcnet_activation": "relu"})
+                    x: RLModuleSpec(
+                        module_class=PPOTorchRLModule, 
+                        model_config={
+                            "fcnet_hiddens": [256, 256, 128],  # Deeper network
+                            "fcnet_activation": "tanh",  # Changed activation
+                            "vf_share_layers": False,  # Separate value function network
+                        })
                     if x in policies_to_train
                     else
                     RLModuleSpec(module_class=RandomRLModule)
                     for x in policies},
             ))
         .training(
-            train_batch_size=4000,
-            lr=0.00005,
+            train_batch_size=8192,  # Larger batch size
+            lr=0.0001,  # Adjusted learning rate
             gamma=0.99,
-            num_sgd_iter=10,
-            grad_clip=0.8,
-            grad_clip_by="norm",
+            lambda_=0.95,  # GAE parameter
+            kl_coeff=0.2,  # KL divergence coefficient
+            clip_param=0.2,  # PPO clipping parameter
+            vf_clip_param=10.0,  # Value function clipping
+            entropy_coeff=0.01,  # Entropy coefficient to encourage exploration
+            num_sgd_iter=16,  # More optimization epochs
+            grad_clip=1.0,  # More conservative gradient clipping
+            grad_clip_by="global_norm",  # Changed clipping method
         )
         .debugging(log_level="ERROR")
     )
@@ -247,16 +297,28 @@ def algo_config_dqn(id_env, policies, policies_to_train):
             enable_env_runner_and_connector_v2=True,
         )
         .environment(env=id_env, disable_env_checking=True)
-        .env_runners(num_env_runners=1)
+        .env_runners(num_env_runners=8)  # Increased parallelism
         .multi_agent(
             policies={x for x in policies},
             policy_mapping_fn=lambda agent_id, *args, **kwargs: agent_id,
             policies_to_train=policies_to_train,
         )
         .training(
-            train_batch_size=512,
-            lr=1e-4,
+            train_batch_size=1024,  # Increased batch size
+            lr=3e-4,  # Slightly increased learning rate
             gamma=0.99,
+            target_network_update_freq=2000,  # More frequent target network updates
+            dueling=True,  # Enable dueling network architecture
+            hiddens=[256, 256],  # Deeper network
+            buffer_size=100000,  # Larger replay buffer
+            exploration_config={
+                "epsilon_timesteps": 50000,  # Longer exploration period
+                "final_epsilon": 0.02,  # Lower final exploration
+            },
+            prioritized_replay=True,  # Enable prioritized replay
+            prioritized_replay_alpha=0.6,
+            prioritized_replay_beta=0.4,
+            prioritized_replay_eps=1e-6,
         )
         .debugging(log_level="ERROR")
     )
@@ -272,9 +334,10 @@ def training(env, checkpoint_path, max_iterations = 500):
     id_env = "knights_archers_zombies_v10"
     register_env(id_env, lambda config: rllib_env)
 
-    # Fix seeds
+    # Fix seeds for reproducibility
     np.random.seed(42)
     torch.manual_seed(42)
+    torch.cuda.manual_seed_all(42) if torch.cuda.is_available() else None
 
     # Define the configuration for the PPO algorithm
     policies = [x for x in env.agents]
@@ -285,6 +348,8 @@ def training(env, checkpoint_path, max_iterations = 500):
     algo = config.build()
     mean_rewards = []
     best_mean_reward = -np.inf
+    patience = 30  # For early stopping
+    no_improvement_count = 0
     
     for i in range(max_iterations):
         result = algo.train()
@@ -297,20 +362,31 @@ def training(env, checkpoint_path, max_iterations = 500):
             
             archer_0_reward = result["env_runners"]["agent_episode_returns_mean"]["archer_0"]
             
-            if archer_0_reward > 50: # Or any early stopping criterion
+            if archer_0_reward > 75: # Increased early stopping threshold for better performance
+                print(f"Early stopping at iteration {i} with reward {archer_0_reward}")
                 break
             
             mean_rewards.append(archer_0_reward)
             
+            
+            # Check for improvement and save best model
             if archer_0_reward > best_mean_reward:
                 best_mean_reward = archer_0_reward
+                no_improvement_count = 0
                 
                 save_result = algo.save(checkpoint_path)
                 path_to_checkpoint = save_result.checkpoint.path
                 print(
-                    "An Algorithm checkpoint has been created inside directory: "
+                    f"Iteration {i}: New best reward {best_mean_reward:.2f}. Checkpoint saved: "
                     f"'{path_to_checkpoint}'."
                 )
+            else:
+                no_improvement_count += 1
+                
+            # Early stopping if no improvement for 'patience' iterations
+            if no_improvement_count >= patience:
+                print(f"Stopping early at iteration {i}: No improvement for {patience} iterations")
+                break
     
     
     # Plotting reward curve
@@ -333,9 +409,9 @@ if __name__ == "__main__":
     visual_observation = False
 
     # Create the PettingZoo environment for training
-    env = create_environment(num_agents=num_agents, visual_observation=visual_observation)
+    env = create_environment(num_agents=num_agents, visual_observation=visual_observation, max_cycles=1500)  # Longer episodes for better learning
     env = CustomWrapper(env)
 
     # Running training routine
     checkpoint_path = str(Path("results").resolve())
-    training(env, checkpoint_path, max_iterations = 200)
+    training(env, checkpoint_path, max_iterations = 300)  # Increased max iterations
