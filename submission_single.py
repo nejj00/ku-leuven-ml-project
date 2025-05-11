@@ -109,7 +109,7 @@ class CustomPredictFunction:
         # Here you should load your trained model(s) from a checkpoint in your folder
         package_directory = Path(__file__).resolve().parent
         best_checkpoint = (
-            package_directory / "results" / "learner_group" / "learner" / "rl_module"
+            package_directory / "models" / "single_agent" / "learner_group" / "learner" / "rl_module"
         ).resolve()
 
         if not best_checkpoint.exists():
