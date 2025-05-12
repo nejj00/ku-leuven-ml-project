@@ -15,7 +15,7 @@ class CustomWrapper(BaseWrapper):
     # Wrapper are useful to inject state pre-processing or feature that does not need to be learned by the agent
     def __init__(self, env):
         super().__init__(env)
-        self.extra_features_dim = 10  # We'll define 4 features
+        self.extra_features_dim = 16  # Enhanced features dimension
     
     def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
         
@@ -63,16 +63,33 @@ class CustomWrapper(BaseWrapper):
             nearest_dx, nearest_dy = 0.0, 0.0
             dot_heading_enemy_dir = 0.0
             nearest_end_dx, nearest_end_dy = 0.0, 0.0
+            farthest_dist = 1.0
+            zombie_density = 0.0
+            threat_level = 0.0
+            second_nearest_dist = 1.0
         else:
             dists = zombies[:, 0]
             dxs = zombies[:, 1]
             dys = zombies[:, 2]
 
+            # Sort zombies by distance
+            sorted_indices = np.argsort(dists)
+            
+            # Average distance and direction
             avg_dist = np.mean(dists)
-            nearest_idx = np.argmin(dists)
+            
+            # Nearest zombie info
+            nearest_idx = sorted_indices[0]
             nearest_dist = dists[nearest_idx]
             nearest_dx, nearest_dy = dxs[nearest_idx], dys[nearest_idx]
-
+            
+            # Second nearest zombie (if available)
+            second_nearest_dist = dists[sorted_indices[1]] if len(sorted_indices) > 1 else 1.0
+            
+            # Farthest zombie
+            farthest_dist = np.max(dists)
+            
+            # Directional information
             avg_dx = np.mean(dxs)
             avg_dy = np.mean(dys)
 
@@ -80,21 +97,43 @@ class CustomWrapper(BaseWrapper):
             avg_dir_unit = np.array([avg_dx / avg_dir_norm, avg_dy / avg_dir_norm])
             dot_heading_enemy_dir = heading_x * avg_dir_unit[0] + heading_y * avg_dir_unit[1]
             
+            # Farthest zombie in a particular direction
             nearest_end_idx = np.argmax(dys)
             nearest_end_dx, nearest_end_dy = dxs[nearest_end_idx], dys[nearest_end_idx]
+            
+            # Calculate zombie density (more zombies close together = higher density)
+            zombie_density = num_zombies / (np.sum(dists) + 1e-8) 
+            
+            # Threat level (more zombies and closer = higher threat)
+            threat_level = num_zombies * (1 - np.min([1.0, nearest_dist]))
 
         # Normalize nearest zombie direction
         norm = np.linalg.norm([nearest_dx, nearest_dy]) + 1e-8
         nearest_dxdy = np.array([nearest_dx / norm, nearest_dy / norm])
+        
+        # Calculate angle between heading and nearest zombie
+        heading_vec = np.array([heading_x, heading_y])
+        heading_norm = np.linalg.norm(heading_vec) + 1e-8
+        nearest_vec = np.array([nearest_dx, nearest_dy])
+        angle_cos = np.dot(heading_vec, nearest_vec) / (heading_norm * norm)
+        
+        # Check if zombie is behind archer
+        zombie_behind = 1.0 if angle_cos < -0.5 else 0.0
 
         features = np.array([
             heading_x, heading_y,
-            num_zombies / 4.0,  # Normalize by max zombies (assumed max = 5)
+            num_zombies / 4.0,  # Normalize by max zombies
             avg_dist,
             nearest_dist,
             *nearest_dxdy,
             dot_heading_enemy_dir,
-            nearest_end_dx, nearest_end_dy
+            nearest_end_dx, nearest_end_dy,
+            farthest_dist, 
+            zombie_density,
+            threat_level,
+            angle_cos,
+            zombie_behind,
+            second_nearest_dist
         ], dtype=np.float64)
 
         return features

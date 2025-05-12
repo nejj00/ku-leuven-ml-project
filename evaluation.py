@@ -79,7 +79,7 @@ def main(argv=None):
     logger.setLevel(max(logging.INFO - 10 * (args.verbose - args.quiet), logging.DEBUG))
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    num_agents = 1
+    num_agents = 2
     visual_observation = False
     render_mode = "human" if args.screen else None # "human" or None
     logger.info(f'Show game: {render_mode}')
@@ -96,7 +96,8 @@ def main(argv=None):
         CustomWrapper = Agent.CustomWrapper
         CustomPredictFunction = Agent.CustomPredictFunction
     else:
-        from submission_single import CustomWrapper, CustomPredictFunction
+        from submission_multi import CustomWrapper, CustomPredictFunction
+        
 
     # Create the PettingZoo environment for evaluation (with rendering)
     env = create_environment(num_agents=num_agents, render_mode=render_mode,
@@ -104,7 +105,7 @@ def main(argv=None):
     env = CustomWrapper(env)
 
     # Loading best checkpoint and evaluating
-    random_seeds = list(range(100)) # We will be using different seeds for evaluation
+    random_seeds = list(range(10)) # We will be using different seeds for evaluation
     evaluate(env, CustomPredictFunction(env), seed_games=random_seeds) 
 
 
