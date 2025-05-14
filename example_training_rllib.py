@@ -36,7 +36,7 @@ class CustomWrapper(BaseWrapper):
     # Wrapper are useful to inject state pre-processing or feature that does not need to be learned by the agent
     def __init__(self, env):
         super().__init__(env)
-        self.extra_features_dim = 14  # Enhanced features dimension
+        self.extra_features_dim = 11  # Enhanced features dimension
     
     def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
         
@@ -143,12 +143,12 @@ class CustomWrapper(BaseWrapper):
         zombie_behind = 1.0 if angle_cos < -0.5 else 0.0
 
         features = np.array([
-            heading_x, heading_y,
+            # heading_x, heading_y,
             num_zombies / 4.0,  # Normalize by max zombies
             avg_dist,
             nearest_dist,
             *nearest_dxdy,
-            dot_heading_enemy_dir,
+            # dot_heading_enemy_dir,
             # nearest_end_dx, nearest_end_dy,
             farthest_dist, 
             zombie_density,
