@@ -228,8 +228,8 @@ if __name__ == "__main__":
     #     starting_points=get_cardinal_starting_points()
     # )
     
-    # # ------ Boltzmann Q-learning in Matching Pennies (converging to center) ------
-    # print("\nRunning Experiment: Boltzmann Q-learning in Matching Pennies (converging to center)")
+    # # ------ Boltzmann Q-learning in Matching Pennies------
+    # print("\nRunning Experiment: Boltzmann Q-learning in Matching Pennies")
     # # Initialize the Matching Pennies game
     # game = MatchingPennies()
     # # Initialize Boltzmann Q-learning
@@ -241,35 +241,13 @@ if __name__ == "__main__":
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
-    #     episodes=1750,
+    #     episodes=4000,
     #     runs_per_start_point=2000,
-    #     alpha=0.006,
+    #     alpha=0.005,
     #     gamma=0,
     #     plot_rd=True,
     #     n_processes=use_cores,
-    #     title="Boltzmann Q-learning in Matching Pennies (Converging to Center)"
-    # )
-    
-    # # ------ Boltzmann Q-learning  in Matching Pennies (circles) ------
-    # print("\nRunning Experiment: Boltzmann Q-learning  in Matching Pennies (circular orbits)")
-    # # Initialize the Matching Pennies game
-    # game = MatchingPennies()
-    # # Initialize Boltzmann Q-learning with different decay rate
-    # q_learning = BoltzmannQLearning(
-    #     temperature=1,
-    #     temperature_min=0,
-    #     temperature_decay=0.99
-    # )
-    # run_experiment_setup(
-    #     game=game,
-    #     q_learning=q_learning,
-    #     episodes=300,
-    #     runs_per_start_point=2000,
-    #     alpha=0.011,
-    #     gamma=0,
-    #     plot_rd=True,
-    #     n_processes=use_cores,
-    #     title="Boltzmann Q-learning in Matching Pennies (Circular Orbits)"
+    #     title="Boltzmann Q-learning in Matching Pennies"
     # )
     
     # # ------ Boltzmann in Stag Hunt ------
@@ -368,27 +346,28 @@ if __name__ == "__main__":
     #     starting_points=get_cardinal_starting_points(1)
     # )
     
-    # # ------ Boltzmann Q-learning with leniency in Matching Pennies (converging to center) ------
-    # print("\nRunning Experiment: Boltzmann Q-learning with leniency in Matching Pennies (converging to center)")
+    # # ------ Boltzmann Q-learning with leniency in Matching Pennies------
+    # print("\nRunning Experiment: Boltzmann Q-learning with leniency in Matching Pennies")
     # # Initialize the Matching Pennies game
     # game = MatchingPennies()
     # # Initialize Boltzmann Q-learning with leniency
     # q_learning = BoltzmannQLearning(
     #     temperature=1,
     #     temperature_min=0,
-    #     temperature_decay=0.995
+    #     temperature_decay=0.995,
+    #     kappa=5
     # )
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
-    #     episodes=1750,
+    #     episodes=4000,
     #     runs_per_start_point=2000,
-    #     alpha=0.006,
+    #     alpha=0.005,
     #     use_leniency=True,
     #     gamma=0,
     #     plot_rd=True,
     #     n_processes=use_cores,
-    #     title="Boltzmann Q-learning with leniency in Matching Pennies (Converging to Center)"
+    #     title="Boltzmann Q-learning with leniency in Matching Pennies"
     # )
     
     # # ------ Boltzmann in Prisonners Dilemma with too heavily biased starting points------
@@ -404,9 +383,9 @@ if __name__ == "__main__":
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
-    #     episodes=2000,
+    #     episodes=4000,
     #     runs_per_start_point=200,
-    #     alpha=0.00165,
+    #     alpha=0.005,
     #     gamma=0,
     #     plot_rd=True,
     #     n_processes=use_cores,
@@ -453,7 +432,7 @@ if __name__ == "__main__":
     #     q_learning=q_learning,
     #     episodes=4000,
     #     runs_per_start_point=200,
-    #     alpha=0.006,
+    #     alpha=0.005,
     #     gamma=0,
     #     use_leniency=True,
     #     plot_rd=True,
