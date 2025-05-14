@@ -303,14 +303,14 @@ if __name__ == "__main__":
     # q_learning = BoltzmannQLearning(
     #     temperature=1,
     #     temperature_min=0,
-    #     temperature_decay=0.9995
+    #     temperature_decay=0.999
     # )
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
-    #     episodes=8000,
-    #     runs_per_start_point=500,
-    #     alpha=0.00165,
+    #     episodes=4000,
+    #     runs_per_start_point=1000,
+    #     alpha=0.005,
     #     gamma=0,
     #     plot_rd=True,
     #     n_processes=use_cores,
