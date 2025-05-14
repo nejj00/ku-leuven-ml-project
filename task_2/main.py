@@ -285,7 +285,7 @@ if __name__ == "__main__":
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
-    #     episodes=10000,
+    #     episodes=4000,
     #     runs_per_start_point=200,
     #     alpha=0.005,
     #     gamma=0,
@@ -326,21 +326,21 @@ if __name__ == "__main__":
     # q_learning = BoltzmannQLearning(
     #     temperature=1,
     #     temperature_min=0,
-    #     temperature_decay=0.9982,
-    #     kappa=4
+    #     temperature_decay=0.998,
+    #     kappa=5
     # )
     # run_experiment_setup(
     #     game=game,
     #     q_learning=q_learning,
     #     episodes=4000,
     #     runs_per_start_point=200,
-    #     alpha=0.006,
+    #     alpha=0.005,
     #     gamma=0,
     #     use_leniency=True,
     #     plot_rd=True,
     #     n_processes=use_cores,
     #     title="Boltzmann Q-learning with leniency in Stag Hunt",
-    #     starting_points=get_cardinal_starting_points()
+    #     starting_points=get_cardinal_starting_points() + get_cardinal_starting_points(distance_scaling=1)
     # )
     
     # # ------ Boltzmann Q-learning with leniency in Prisoner's Dilemma ------
